@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "as400-mcp-server"
+version = "1.0.0"
+description = "MCP Server para conectar asistentes de IA con sistemas AS/400 (IBM i) de forma segura"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Florent"},
+]
+keywords = ["mcp", "as400", "ibm-i", "ai", "model-context-protocol", "odbc"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Database",
+]
+
+dependencies = [
+    "mcp>=1.0.0",
+    "pyodbc>=5.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/florent/as400-mcp-server"
+Issues = "https://github.com/florent/as400-mcp-server/issues"
+
+[project.scripts]
+as400-mcp = "server:main"
