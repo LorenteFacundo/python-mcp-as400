@@ -24,7 +24,7 @@
         {"sub": "El Model Context Protocol, o MCP, es un estándar abierto creado por Anthropic para resolver esto.",
          "say": "El Model Context Protocol, o MCP, es un estándar abierto creado por Ánthropic para resolver esto."},
         {"sub": "Pensalo como un puerto USB-C para la IA: un solo conector que sirve para todo.",
-         "say": "Pensalo como un puerto u ese be ce para la inteligencia artificial: un solo conector, que sirve para todo."},
+         "say": "Pensalo como un puerto u ese be, tipo ce, para la inteligencia artificial: un solo conector, que sirve para todo."},
         {"sub": "Cualquier asistente compatible puede usar cualquier servidor MCP, hablando el mismo idioma."}
       ]
     },
@@ -84,12 +84,13 @@
     {
       "id": "herramientas",
       "cues": [
-        {"sub": "El servidor expone cinco herramientas."},
+        {"sub": "Este servidor ofrece cinco herramientas."},
         {"sub": "Una para ejecutar consultas SQL de solo lectura."},
-        {"sub": "Otra para comandos CL de una lista permitida."},
+        {"sub": "Otra para comandos CL de una lista permitida.",
+         "say": "Otra para comandos CL, de una lista permitida."},
         {"sub": "Una para leer el código fuente de un miembro."},
         {"sub": "Otra para compilar programas RPG, CL, COBOL o C.",
-         "say": "Otra para compilar programas RPG, CL, cobol, o ce."},
+         "say": "Otra para compilar programas en RPG, en CL, en Cóbol, o en lenguaje ce."},
         {"sub": "Y una para leer spoolfiles, como el resultado de una compilación.",
          "say": "Y una para leer espulfails, como el resultado de una compilación."}
       ]
@@ -98,7 +99,7 @@
       "id": "conexion",
       "cues": [
         {"sub": "La conexión se abre con pyodbc y el driver IBM i Access, usando las credenciales del archivo .env.",
-         "say": "La conexión se abre con pai o de be ce y el dráiver i be eme i Access, usando las credenciales del archivo punto env."},
+         "say": "La conexión se abre con pai o de be ce y el dráiver i be eme i Access, usando las credenciales del archivo punto e ene ve."},
         {"sub": "Se reutiliza entre llamadas, y antes de cada uso se verifica con una consulta mínima."},
         {"sub": "Si la conexión se cayó, reconecta sola."}
       ]
@@ -106,8 +107,8 @@
     {
       "id": "cl_sql",
       "cues": [
-        {"sub": "Un detalle clave: ODBC solo habla SQL.",
-         "say": "Un detalle clave: o de be ce solo habla SQL."},
+        {"sub": "Un detalle clave: la conexión ODBC solo entiende SQL.",
+         "say": "Un detalle clave: la conexión o de be ce solo entiende SQL."},
         {"sub": "Para ejecutar un comando CL, el servidor lo envuelve en una llamada al procedimiento QSYS2.QCMDEXC.",
          "say": "Para ejecutar un comando CL, el servidor lo envuelve en una llamada a un procedimiento del sistema."},
         {"sub": "Y como no hay pantalla, los comandos de consulta envían su salida a un archivo en QTEMP…",
@@ -144,10 +145,11 @@
     {
       "id": "cl",
       "cues": [
-        {"sub": "Para los comandos CL hay una lista blanca estricta."},
+        {"sub": "Para los comandos CL hay una lista blanca estricta.",
+         "say": "Para los comandos CL, hay una lista blanca estricta."},
         {"sub": "Se permiten comandos de visualización, verificación, compilación y manejo de la sesión."},
         {"sub": "Cualquier otro, como borrar una biblioteca o vaciar un archivo, se rechaza. Incluso RUNSQLSTM, que permitiría saltear las reglas de solo lectura.",
-         "say": "Cualquier otro, como borrar una biblioteca o vaciar un archivo, se rechaza. Incluso el que ejecuta scripts SQL, porque permitiría saltear las reglas de solo lectura."}
+         "say": "Cualquier otro, como borrar una biblioteca o vaciar un archivo, se rechaza. Incluso el que corre sentencias SQL desde un archivo, porque permitiría saltear las reglas de solo lectura."}
       ]
     },
     {
@@ -178,7 +180,7 @@
       "id": "setup",
       "cues": [
         {"sub": "Para usarlo, instalás las dependencias y completás el archivo .env con el host, el usuario y la contraseña.",
-         "say": "Para usarlo, instalás las dependencias, y completás el archivo punto env con el jost, el usuario y la contraseña."},
+         "say": "Para usarlo, instalás las dependencias, y completás el archivo punto e ene ve, con el jost, el usuario y la contraseña."},
         {"sub": "Después, lo registrás en la configuración de Claude Desktop.",
          "say": "Después, lo registrás en la configuración de Clod Désktop."},
         {"sub": "Listo: tu asistente ya puede trabajar con tu AS/400.",
