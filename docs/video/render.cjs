@@ -94,7 +94,7 @@ async function renderPart(browser, idx, from, to) {
       "-y", "-loglevel", "error",
       "-f", "concat", "-safe", "0", "-i", list,
       "-i", path.join(BUILD, "narration.wav"),
-      "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
+      "-c:v", "copy", "-af", "volume=-1.5dB", "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
       "-movflags", "+faststart", "-shortest", OUT,
     ]);
     parts.forEach((p) => fs.unlinkSync(p));
