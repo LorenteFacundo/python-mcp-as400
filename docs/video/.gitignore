@@ -1,0 +1,4 @@
+# Archivos intermedios de build_audio.py y render.cjs
+build/
+*.onnx
+*.onnx.json

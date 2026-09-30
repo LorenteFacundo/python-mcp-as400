@@ -1,0 +1,199 @@
+{
+  "voice": "es_AR-daniela-high",
+  "scenes": [
+    {
+      "id": "intro",
+      "cues": [
+        {"sub": "Hola. En este video vamos a ver qué es un servidor MCP y cómo funciona el MCP para AS/400 que desarrollé.",
+         "say": "Hola. En este video vamos a ver qué es un servidor MCP, y cómo funciona el MCP para a ese cuatrocientos que desarrollé."},
+        {"sub": "Un puente entre un asistente de inteligencia artificial y un sistema IBM i, pensado para ser útil sin poner nada en riesgo.",
+         "say": "Un puente entre un asistente de inteligencia artificial y un sistema i be eme i, pensado para ser útil, sin poner nada en riesgo."}
+      ]
+    },
+    {
+      "id": "problema",
+      "cues": [
+        {"sub": "Un modelo de lenguaje sabe razonar y escribir código, pero por sí solo está aislado."},
+        {"sub": "No puede consultar tu base de datos, leer tus programas ni compilar nada."},
+        {"sub": "Y cada integración se hacía a medida: cada aplicación con cada sistema, una por una."}
+      ]
+    },
+    {
+      "id": "usbc",
+      "cues": [
+        {"sub": "El Model Context Protocol, o MCP, es un estándar abierto creado por Anthropic para resolver esto.",
+         "say": "El Model Context Protocol, o MCP, es un estándar abierto creado por Ánthropic para resolver esto."},
+        {"sub": "Pensalo como un puerto USB-C para la IA: un solo conector que sirve para todo.",
+         "say": "Pensalo como un puerto u ese be ce para la inteligencia artificial: un solo conector, que sirve para todo."},
+        {"sub": "Cualquier asistente compatible puede usar cualquier servidor MCP, hablando el mismo idioma."}
+      ]
+    },
+    {
+      "id": "arquitectura",
+      "cues": [
+        {"sub": "Hay tres piezas. El host es la aplicación que usás; por ejemplo, Claude Desktop.",
+         "say": "Hay tres piezas. El jost es la aplicación que usás; por ejemplo, Clod Désktop."},
+        {"sub": "Adentro vive un cliente MCP, que mantiene la conexión con cada servidor."},
+        {"sub": "Y del otro lado está el servidor MCP: un programa que expone capacidades."},
+        {"sub": "Se comunican con mensajes JSON-RPC. En este caso, por la entrada y salida estándar del proceso: stdio.",
+         "say": "Se comunican con mensajes yeison erre pe ce. En este caso, por la entrada y salida estándar del proceso."}
+      ]
+    },
+    {
+      "id": "primitivas",
+      "cues": [
+        {"sub": "Un servidor puede ofrecer tres tipos de cosas."},
+        {"sub": "Herramientas, que son funciones que la IA puede ejecutar.",
+         "say": "Herramientas, que son funciones que la inteligencia artificial puede ejecutar."},
+        {"sub": "Recursos, que son datos para leer. Y prompts, que son plantillas reutilizables.",
+         "say": "Recursos, que son datos para leer. Y prómpts, que son plantillas reutilizables."},
+        {"sub": "Este proyecto se centra en las herramientas."}
+      ]
+    },
+    {
+      "id": "flujo",
+      "cues": [
+        {"sub": "Primero, cliente y servidor se saludan e intercambian sus capacidades."},
+        {"sub": "Después, el cliente pregunta qué herramientas hay, y el servidor responde con el nombre, la descripción y los parámetros de cada una."},
+        {"sub": "Cuando el modelo decide usar una, el cliente envía la llamada con sus argumentos."},
+        {"sub": "El servidor la ejecuta y devuelve el resultado, que vuelve al modelo como contexto para seguir razonando."}
+      ]
+    },
+    {
+      "id": "parte2",
+      "cues": [
+        {"sub": "Ahora sí: el MCP para AS/400.",
+         "say": "Ahora sí: el MCP para a ese cuatrocientos."},
+        {"sub": "Es un servidor escrito en Python con FastMCP, que se conecta al IBM i a través de ODBC.",
+         "say": "Es un servidor escrito en Páiton, con Fast MCP, que se conecta al i be eme i a través de o de be ce."},
+        {"sub": "Claude Desktop lo lanza como un proceso y le habla por stdio.",
+         "say": "Clod Désktop lo lanza como un proceso, y le habla por la entrada y salida estándar."}
+      ]
+    },
+    {
+      "id": "decorador",
+      "cues": [
+        {"sub": "Definir una herramienta es muy simple: se agrega el decorador @mcp.tool a una función de Python.",
+         "say": "Definir una herramienta es muy simple: se agrega el decorador MCP punto tul, a una función de Páiton."},
+        {"sub": "FastMCP lee el nombre de la función, los parámetros con sus tipos y el docstring…",
+         "say": "Fast MCP lee el nombre de la función, los parámetros con sus tipos, y el texto de documentación,"},
+        {"sub": "…y con eso arma automáticamente el esquema que ve la IA.",
+         "say": "y con eso arma automáticamente el esquema que ve la inteligencia artificial."}
+      ]
+    },
+    {
+      "id": "herramientas",
+      "cues": [
+        {"sub": "El servidor expone cinco herramientas."},
+        {"sub": "Una para ejecutar consultas SQL de solo lectura."},
+        {"sub": "Otra para comandos CL de una lista permitida."},
+        {"sub": "Una para leer el código fuente de un miembro."},
+        {"sub": "Otra para compilar programas RPG, CL, COBOL o C.",
+         "say": "Otra para compilar programas RPG, CL, cobol, o ce."},
+        {"sub": "Y una para leer spoolfiles, como el resultado de una compilación.",
+         "say": "Y una para leer espulfails, como el resultado de una compilación."}
+      ]
+    },
+    {
+      "id": "conexion",
+      "cues": [
+        {"sub": "La conexión se abre con pyodbc y el driver IBM i Access, usando las credenciales del archivo .env.",
+         "say": "La conexión se abre con pai o de be ce y el dráiver i be eme i Access, usando las credenciales del archivo punto env."},
+        {"sub": "Se reutiliza entre llamadas, y antes de cada uso se verifica con una consulta mínima."},
+        {"sub": "Si la conexión se cayó, reconecta sola."}
+      ]
+    },
+    {
+      "id": "cl_sql",
+      "cues": [
+        {"sub": "Un detalle clave: ODBC solo habla SQL.",
+         "say": "Un detalle clave: o de be ce solo habla SQL."},
+        {"sub": "Para ejecutar un comando CL, el servidor lo envuelve en una llamada al procedimiento QSYS2.QCMDEXC.",
+         "say": "Para ejecutar un comando CL, el servidor lo envuelve en una llamada a un procedimiento del sistema."},
+        {"sub": "Y como no hay pantalla, los comandos de consulta envían su salida a un archivo en QTEMP…",
+         "say": "Y como no hay pantalla, los comandos de consulta envían su salida a un archivo temporal en QTEMP,"},
+        {"sub": "…que después se lee con una consulta SQL normal.",
+         "say": "que después se lee con una consulta SQL normal."}
+      ]
+    },
+    {
+      "id": "fuente",
+      "cues": [
+        {"sub": "Para leer código fuente usa otro truco: crea un alias SQL temporal que apunta al miembro.",
+         "say": "Para leer código fuente usa otro truco: crea un alias SQL temporal, que apunta al miembro."},
+        {"sub": "Lee las líneas ordenadas por número de secuencia y, al terminar, borra el alias."}
+      ]
+    },
+    {
+      "id": "seguridad",
+      "cues": [
+        {"sub": "Pero lo más importante es la seguridad."},
+        {"sub": "La filosofía es simple: análisis y compilación, sí. Destrucción, nunca."},
+        {"sub": "Cada pedido pasa por varias capas de validación antes de tocar el sistema."}
+      ]
+    },
+    {
+      "id": "sql",
+      "cues": [
+        {"sub": "En SQL, primero se quitan los comentarios y se rechaza el punto y coma, para evitar sentencias encadenadas."},
+        {"sub": "Solo se aceptan consultas que empiezan con SELECT, WITH o VALUES. SELECT INTO y CALL quedan bloqueados.",
+         "say": "Solo se aceptan consultas de lectura, que empiezan con sélect, uíz o váliuz. Sélect íntu, y col, quedan bloqueados."},
+        {"sub": "Y si la consulta no tiene un límite, se le agrega uno de mil filas."}
+      ]
+    },
+    {
+      "id": "cl",
+      "cues": [
+        {"sub": "Para los comandos CL hay una lista blanca estricta."},
+        {"sub": "Se permiten comandos de visualización, verificación, compilación y manejo de la sesión."},
+        {"sub": "Cualquier otro, como borrar una biblioteca o vaciar un archivo, se rechaza. Incluso RUNSQLSTM, que permitiría saltear las reglas de solo lectura.",
+         "say": "Cualquier otro, como borrar una biblioteca o vaciar un archivo, se rechaza. Incluso el que ejecuta scripts SQL, porque permitiría saltear las reglas de solo lectura."}
+      ]
+    },
+    {
+      "id": "identificadores",
+      "cues": [
+        {"sub": "Los nombres de biblioteca, archivo y miembro se validan con el formato del AS/400: de 1 a 10 caracteres, entre letras, números, #, @ o $.",
+         "say": "Los nombres de biblioteca, archivo y miembro se validan con el formato del a ese cuatrocientos: de uno a diez caracteres, entre letras, números, numeral, arroba o signo pesos."},
+        {"sub": "Así se evita la inyección de SQL."},
+        {"sub": "Y los mensajes de error se limpian, para no exponer usuarios, contraseñas ni datos de conexión."}
+      ]
+    },
+    {
+      "id": "demo",
+      "cues": [
+        {"sub": "Veamos un caso real. Le pedís al asistente: «Compilá CALCPRICE y decime si hay errores».",
+         "say": "Veamos un caso real. Le pedís al asistente: compilá calc prais, y decime si hay errores."},
+        {"sub": "El modelo llama a compile_program con la biblioteca, el archivo fuente y el miembro.",
+         "say": "El modelo llama a la herramienta de compilación, con la biblioteca, el archivo fuente y el miembro."},
+        {"sub": "El servidor valida todo, arma el comando CRTBNDRPG y lo ejecuta en el IBM i.",
+         "say": "El servidor valida todo, arma el comando de compilación, y lo ejecuta en el i be eme i."},
+        {"sub": "Después lee el spoolfile con el listado de compilación…",
+         "say": "Después lee el espulfail con el listado de compilación,"},
+        {"sub": "…y te explica los errores en lenguaje natural: la línea exacta y cómo corregirlos.",
+         "say": "y te explica los errores en lenguaje natural: la línea exacta, y cómo corregirlos."}
+      ]
+    },
+    {
+      "id": "setup",
+      "cues": [
+        {"sub": "Para usarlo, instalás las dependencias y completás el archivo .env con el host, el usuario y la contraseña.",
+         "say": "Para usarlo, instalás las dependencias, y completás el archivo punto env con el jost, el usuario y la contraseña."},
+        {"sub": "Después, lo registrás en la configuración de Claude Desktop.",
+         "say": "Después, lo registrás en la configuración de Clod Désktop."},
+        {"sub": "Listo: tu asistente ya puede trabajar con tu AS/400.",
+         "say": "Listo: tu asistente ya puede trabajar con tu a ese cuatrocientos."}
+      ]
+    },
+    {
+      "id": "cierre",
+      "cues": [
+        {"sub": "En resumen: MCP es el estándar que conecta a la IA con tus sistemas.",
+         "say": "En resumen: MCP es el estándar que conecta a la inteligencia artificial con tus sistemas."},
+        {"sub": "Y este servidor lo lleva al mundo IBM i: acceso útil, pero seguro.",
+         "say": "Y este servidor lo lleva al mundo i be eme i: acceso útil, pero seguro."},
+        {"sub": "¡Gracias por mirar!", "hide": true}
+      ]
+    }
+  ]
+}

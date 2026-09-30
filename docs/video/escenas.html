@@ -1,0 +1,1059 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP + AS/400</title>
+<style>
+@font-face { font-family: Inter; src: url(fonts/inter-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; }
+@font-face { font-family: JBM; src: url(fonts/jetbrains-mono-latin-wght-normal.woff2) format("woff2"); font-weight: 100 800; }
+
+:root {
+  --bg: #070b16;
+  --panel: #0f172c;
+  --panel2: #141e38;
+  --line: #243155;
+  --text: #e9edf7;
+  --muted: #8f9bb8;
+  --dim: #5d6a8a;
+  --violet: #a78bfa;
+  --blue: #5b9bff;
+  --cyan: #22d3ee;
+  --green: #34d399;
+  --red: #f87171;
+  --amber: #fbbf24;
+  --rgb-violet: 167 139 250;
+  --rgb-blue: 91 155 255;
+  --rgb-cyan: 34 211 238;
+  --rgb-green: 52 211 153;
+  --rgb-red: 248 113 113;
+  --rgb-amber: 251 191 36;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body { font-family: Inter, system-ui, sans-serif; overflow: hidden; }
+#stage {
+  position: relative; width: 1920px; height: 1080px; overflow: hidden;
+  background:
+    radial-gradient(900px 600px at 8% 0%, rgb(var(--rgb-violet) / .13), transparent 70%),
+    radial-gradient(900px 700px at 100% 100%, rgb(var(--rgb-blue) / .12), transparent 70%),
+    var(--bg);
+  transform-origin: 0 0;
+}
+#stage::before {
+  content: ""; position: absolute; inset: 0; opacity: .5;
+  background-image:
+    linear-gradient(rgb(255 255 255 / .025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / .025) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.scene { position: absolute; inset: 0; opacity: 0; display: none; }
+.abs { position: absolute; }
+.mono { font-family: JBM, ui-monospace, monospace; font-variant-ligatures: none; }
+.muted { color: var(--muted); }
+
+/* ---------- encabezado ---------- */
+.head { position: absolute; left: 96px; top: 64px; }
+.head h2 { margin: 18px 0 0; font-size: 56px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.1; }
+.kicker {
+  display: inline-block; font-size: 19px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase;
+  padding: 8px 16px; border-radius: 999px; color: var(--violet);
+  background: rgb(var(--rgb-violet) / .12); border: 1px solid rgb(var(--rgb-violet) / .35);
+}
+.kicker.blue { color: var(--blue); background: rgb(var(--rgb-blue) / .12); border-color: rgb(var(--rgb-blue) / .4); }
+.kicker.amber { color: var(--amber); background: rgb(var(--rgb-amber) / .1); border-color: rgb(var(--rgb-amber) / .4); }
+.kicker.plain { color: var(--muted); background: transparent; border-color: var(--line); }
+
+/* ---------- tarjetas ---------- */
+.card {
+  position: absolute; background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1.5px solid var(--line); border-radius: 20px; padding: 26px 30px;
+  box-shadow: 0 20px 50px rgb(0 0 0 / .35);
+}
+.card.v { border-color: rgb(var(--rgb-violet) / .55); }
+.card.b { border-color: rgb(var(--rgb-blue) / .6); }
+.card.g { border-color: rgb(var(--rgb-green) / .5); }
+.card.r { border-color: rgb(var(--rgb-red) / .5); }
+.card.dash { background: transparent; border-style: dashed; box-shadow: none; }
+.card h3 { margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.01em; }
+.card p { margin: 8px 0 0; font-size: 24px; line-height: 1.35; color: var(--muted); }
+.tag { font-size: 17px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+
+.box { /* caja compacta con icono + texto */
+  position: absolute; display: flex; align-items: center; gap: 18px;
+  background: var(--panel2); border: 1.5px solid var(--line); border-radius: 16px; padding: 0 22px;
+  font-size: 26px; font-weight: 600;
+}
+.box .ico { width: 40px; height: 40px; flex: none; }
+.box small { display: block; font-size: 18px; font-weight: 500; color: var(--muted); margin-top: 2px; }
+.box.grey { color: var(--muted); background: rgb(20 30 56 / .6); }
+.box.v { border-color: rgb(var(--rgb-violet) / .6); }
+.box.b { border-color: rgb(var(--rgb-blue) / .7); background: rgb(var(--rgb-blue) / .12); }
+
+/* ---------- iconos ---------- */
+.ico { display: inline-block; }
+.ico svg { width: 100%; height: 100%; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.iconsq {
+  width: 76px; height: 76px; border-radius: 18px; display: grid; place-items: center;
+  background: rgb(var(--c) / .14); color: rgb(var(--c)); border: 1px solid rgb(var(--c) / .35);
+}
+.iconsq .ico { width: 42px; height: 42px; }
+.c-violet { --c: var(--rgb-violet); } .c-blue { --c: var(--rgb-blue); } .c-cyan { --c: var(--rgb-cyan); }
+.c-green { --c: var(--rgb-green); } .c-red { --c: var(--rgb-red); } .c-amber { --c: var(--rgb-amber); }
+
+/* ---------- nodos ---------- */
+.node {
+  position: absolute; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 30% 25%, rgb(var(--c) / .35), rgb(var(--c) / .08));
+  border: 2px solid rgb(var(--c) / .8); color: rgb(var(--c));
+  box-shadow: 0 0 60px rgb(var(--c) / .35);
+}
+.node .ico { width: 46%; height: 46%; }
+.label { position: absolute; text-align: center; font-size: 24px; font-weight: 600; }
+
+/* ---------- cables SVG ---------- */
+svg.wires { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+.wire { fill: none; stroke-width: 3; stroke-linecap: round; }
+.wire.violet { stroke: var(--violet); } .wire.blue { stroke: var(--blue); } .wire.green { stroke: var(--green); }
+.wire.red { stroke: var(--red); } .wire.amber { stroke: rgb(var(--rgb-amber) / .55); stroke-width: 2; }
+.wire.grey { stroke: var(--dim); stroke-width: 2.5; }
+.wire.ghost { stroke: none; }
+.wire.dashed { stroke-dasharray: 8 10; }
+.pk { stroke: none; }
+.pk.violet { fill: var(--violet); filter: drop-shadow(0 0 8px var(--violet)); }
+.pk.blue { fill: var(--blue); filter: drop-shadow(0 0 8px var(--blue)); }
+.pk.green { fill: var(--green); filter: drop-shadow(0 0 8px var(--green)); }
+.pk.amber { fill: var(--amber); filter: drop-shadow(0 0 8px var(--amber)); }
+
+/* ---------- codigo ---------- */
+.code {
+  position: absolute; font-family: JBM, monospace; font-size: 22px; line-height: 1.6; white-space: pre;
+  background: #0b1122; border: 1.5px solid var(--line); border-radius: 16px; padding: 22px 28px; color: #d6dcef;
+  font-variant-ligatures: none;
+}
+.code .tab { display: block; font-size: 16px; color: var(--muted); margin: -6px 0 10px; letter-spacing: .04em; }
+.t-k { color: #c4b5fd; } .t-f { color: #7dd3fc; } .t-s { color: #86efac; } .t-c { color: #64748b; }
+.t-d { color: #fbbf24; } .t-t { color: #f0abfc; } .t-p { color: #93c5fd; } .t-n { color: #fda4af; }
+.hl { display: inline-block; vertical-align: top; border-radius: 8px; padding: 0 6px; margin: 0 -6px;
+  background: rgb(var(--c) / calc(var(--p, 0) * .16));
+  box-shadow: inset 0 0 0 1.5px rgb(var(--c) / calc(var(--p, 0) * .7)); }
+.chip {
+  display: inline-block; font-family: JBM, monospace; font-size: 18px; font-weight: 600; padding: 6px 12px;
+  border-radius: 10px; margin: 0 8px 10px 0; background: rgb(var(--c) / .12); color: rgb(var(--c));
+  border: 1px solid rgb(var(--c) / .35);
+}
+.pill {
+  position: absolute; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 999px;
+  font-size: 22px; font-weight: 650; padding: 0 22px; background: rgb(var(--c) / .14); color: rgb(var(--c));
+  border: 1.5px solid rgb(var(--c) / .5);
+}
+.pill .ico { width: 26px; height: 26px; }
+.mark { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: rgb(var(--c) / .16); color: rgb(var(--c)); border: 1.5px solid rgb(var(--c) / .6); }
+.mark .ico { width: 24px; height: 24px; }
+.mark .ico svg { stroke-width: 3; }
+
+/* ---------- subtitulos y progreso ---------- */
+#sub {
+  position: absolute; left: 160px; right: 160px; bottom: 50px; display: flex; justify-content: center;
+  pointer-events: none; z-index: 10;
+}
+#sub span {
+  display: inline-block; max-width: 1560px; text-align: center; font-size: 35px; line-height: 1.34; font-weight: 520;
+  padding: 12px 28px; border-radius: 14px; background: rgb(4 7 16 / .82); color: #fff;
+  box-shadow: 0 8px 30px rgb(0 0 0 / .4); text-wrap: balance;
+}
+#progress { position: absolute; left: 0; bottom: 0; height: 5px; width: 100%; background: rgb(255 255 255 / .05); z-index: 11; }
+#progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--violet), var(--blue)); }
+
+/* ---------- escena: intro / cierre ---------- */
+.title { margin: 26px 0 0; font-size: 150px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+.g-violet { background: linear-gradient(135deg, #c4b5fd, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.g-blue { background: linear-gradient(135deg, #93c5fd, #2f6bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.plus { color: var(--dim); font-weight: 400; }
+.lead { margin: 30px 0 0; font-size: 38px; color: var(--muted); font-weight: 450; }
+.hub {
+  position: absolute; display: grid; place-items: center; text-align: center; border-radius: 26px;
+  background: linear-gradient(160deg, rgb(var(--rgb-violet) / .3), rgb(var(--rgb-violet) / .08));
+  border: 2px solid var(--violet); box-shadow: 0 0 70px rgb(var(--rgb-violet) / .4);
+}
+
+/* ---------- escena: primitivas ---------- */
+.glow { box-shadow: 0 0 calc(var(--p, 0) * 80px) rgb(var(--rgb-violet) / calc(var(--p, 0) * .5)), 0 20px 50px rgb(0 0 0 / .35);
+  border-color: rgb(var(--rgb-violet) / calc(.3 + var(--p, 0) * .7)); }
+.example { position: absolute; left: 30px; right: 30px; bottom: 28px; font-family: JBM, monospace; font-size: 20px;
+  background: #0b1122; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; color: #cbd5f5; white-space: pre-wrap; }
+
+/* ---------- escena: flujo ---------- */
+.msg { position: absolute; left: 560px; width: 800px; text-align: center; font-family: JBM, monospace; font-size: 20px; font-weight: 600; }
+.msg.req { color: var(--violet); } .msg.res { color: var(--blue); }
+.lifeline { stroke: var(--line); stroke-width: 2.5; stroke-dasharray: 6 8; }
+.phase { position: absolute; left: 1440px; width: 380px; font-size: 22px; font-weight: 650; color: var(--muted); padding-left: 20px; border-left: 3px solid rgb(var(--c) / .7); }
+.phase b { display: block; color: rgb(var(--c)); font-size: 16px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 2px; }
+
+/* ---------- escena: seguridad ---------- */
+.layer { position: absolute; left: 1060px; width: 724px; height: 64px; display: flex; align-items: center; gap: 16px; padding: 0 22px;
+  border-radius: 14px; font-size: 24px; font-weight: 600;
+  background: rgb(var(--rgb-green) / calc(.03 + var(--p, 0) * .13)); border: 1.5px solid rgb(var(--rgb-green) / calc(.18 + var(--p, 0) * .7)); }
+.layer .n { font-family: JBM, monospace; color: var(--muted); font-size: 20px; }
+.layer .ok { margin-left: auto; color: var(--green); opacity: var(--p, 0); width: 30px; height: 30px; }
+.layer .ok svg { stroke-width: 3; }
+
+/* ---------- escena: sql / identificadores ---------- */
+.rule { position: absolute; left: 96px; width: 820px; height: 88px; display: flex; align-items: center; gap: 20px; font-size: 27px; font-weight: 550; }
+.rule code, .inl { font-family: JBM, monospace; font-size: 22px; padding: 3px 9px; border-radius: 8px; background: #0b1122; border: 1px solid var(--line); color: #e2e8ff; }
+.query { position: absolute; left: 980px; width: 844px; }
+.query .q { font-family: JBM, monospace; font-size: 21px; background: #0b1122; border: 1.5px solid var(--line); border-radius: 12px; padding: 14px 18px; white-space: pre-wrap; }
+.verdict { display: inline-flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 20px; font-weight: 650; color: rgb(var(--c)); }
+.verdict .mark { width: 32px; height: 32px; }
+.verdict .mark .ico { width: 18px; height: 18px; }
+.exrow { position: absolute; left: 1010px; width: 814px; height: 50px; display: flex; align-items: center; gap: 16px; font-size: 21px; }
+.exrow .n { font-family: JBM, monospace; font-size: 24px; font-weight: 600; width: 280px; }
+
+/* ---------- escena: demo ---------- */
+.win { position: absolute; background: #0b1122; border: 1.5px solid var(--line); border-radius: 18px; overflow: hidden; box-shadow: 0 20px 50px rgb(0 0 0 / .4); }
+.win .bar { height: 50px; display: flex; align-items: center; gap: 9px; padding: 0 18px; background: #111a31; border-bottom: 1px solid var(--line); font-size: 18px; color: var(--muted); font-weight: 600; }
+.win .bar i { width: 13px; height: 13px; border-radius: 50%; background: #334166; display: inline-block; }
+.win .bar span { margin-left: 10px; }
+.bubble { position: absolute; font-size: 25px; line-height: 1.4; padding: 18px 22px; border-radius: 18px; }
+.bubble.user { right: 26px; max-width: 560px; background: rgb(var(--rgb-violet) / .2); border: 1px solid rgb(var(--rgb-violet) / .45); border-bottom-right-radius: 6px; }
+.bubble.bot { left: 26px; width: 700px; background: var(--panel2); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
+.toolrow { position: absolute; left: 26px; display: flex; align-items: center; gap: 10px; font-family: JBM, monospace; font-size: 18px; color: var(--muted);
+  padding: 8px 14px; border-radius: 10px; border: 1px dashed var(--line); }
+.toolrow .ico { width: 20px; height: 20px; color: var(--violet); }
+.log { position: absolute; left: 24px; right: 24px; top: 70px; font-family: JBM, monospace; font-size: 18.5px; line-height: 1.55; }
+.log div { white-space: pre; }
+.log .gap { height: 14px; }
+.lv { color: var(--violet); } .lb { color: var(--blue); } .lg { color: var(--green); } .lr { color: var(--red); } .lm { color: var(--muted); }
+.spool { margin-top: 8px; padding: 10px 14px; border-radius: 10px; background: rgb(var(--rgb-amber) / .1); border: 1px solid rgb(var(--rgb-amber) / .45); color: var(--amber); }
+
+/* ---------- varios ---------- */
+.num { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; font-weight: 750;
+  background: rgb(var(--rgb-violet) / .16); color: var(--violet); border: 1.5px solid rgb(var(--rgb-violet) / .55); }
+.srcline { white-space: pre; }
+.srcline .sq { color: var(--dim); }
+table.mini { border-collapse: collapse; font-family: JBM, monospace; font-size: 18px; margin-top: 12px; }
+table.mini th { text-align: left; color: var(--muted); font-weight: 600; padding: 3px 26px 3px 0; border-bottom: 1px solid var(--line); }
+table.mini td { padding: 3px 26px 3px 0; color: #dbe3fb; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- ======================================================= 1. INTRO -->
+<section class="scene" data-scene="intro">
+  <div class="abs" style="left:0;right:0;top:170px;text-align:center">
+    <div data-at="0.3" data-fx="fade"><span class="kicker">Model Context Protocol · IBM i</span></div>
+    <h1 class="title" data-at="0.5" data-fx="scale" data-dur="0.9"><span class="g-violet">MCP</span><span class="plus"> + </span><span class="g-blue">AS/400</span></h1>
+    <p class="lead" data-at="1.1">Cómo un asistente de IA puede trabajar con tu IBM i, de forma segura</p>
+  </div>
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <path id="in-w1" class="wire violet" d="M 640 720 L 860 720" data-at="c1" data-fx="draw" data-dur="0.7"/>
+    <path id="in-w2" class="wire blue" d="M 1060 720 L 1280 720" data-at="c1+0.4" data-fx="draw" data-dur="0.7"/>
+    <path id="in-w3" class="wire ghost" d="M 1280 720 L 1060 720"/>
+    <path id="in-w4" class="wire ghost" d="M 860 720 L 640 720"/>
+    <circle r="7" class="pk violet" data-fx="travel" data-path="in-w1" data-at="c1+1.2" data-dur="0.8" data-repeat="2" data-ease="linear"/>
+    <circle r="7" class="pk violet" data-fx="travel" data-path="in-w2" data-at="c1+1.9" data-dur="0.8" data-repeat="2" data-ease="linear"/>
+    <circle r="7" class="pk blue" data-fx="travel" data-path="in-w3" data-at="c1+2.6" data-dur="0.8" data-repeat="2" data-ease="linear"/>
+    <circle r="7" class="pk blue" data-fx="travel" data-path="in-w4" data-at="c1+3.3" data-dur="0.8" data-repeat="2" data-ease="linear"/>
+  </svg>
+  <div class="node c-violet" style="left:500px;top:650px;width:140px;height:140px" data-at="c0@0.45" data-fx="pop"><i class="ico" data-i="ai"></i></div>
+  <div class="label" style="left:420px;width:300px;top:810px" data-at="c0@0.5">Asistente de IA</div>
+  <div class="hub" style="left:860px;top:672px;width:200px;height:96px" data-at="c0@0.62" data-fx="pop">
+    <div style="font-size:40px;font-weight:800;color:#ddd6fe">MCP</div>
+  </div>
+  <div class="label mono muted" style="left:760px;width:400px;top:810px;font-size:20px" data-at="c0@0.66">as400-mcp-server</div>
+  <div class="node c-blue" style="left:1280px;top:650px;width:140px;height:140px" data-at="c0@0.8" data-fx="pop"><i class="ico" data-i="server"></i></div>
+  <div class="label" style="left:1200px;width:300px;top:810px" data-at="c0@0.85">IBM i (AS/400)</div>
+</section>
+
+<!-- ======================================================= 2. PROBLEMA -->
+<section class="scene" data-scene="problema">
+  <div class="head"><span class="kicker">Parte 1 · ¿Qué es MCP?</span><h2 data-at="0.2">El problema: la IA está aislada</h2></div>
+
+  <div class="abs" style="inset:0" data-at="0" data-dur="0.01" data-fx="fade" data-out="c2">
+    <svg class="wires" viewBox="0 0 1920 1080">
+      <circle class="wire grey dashed" cx="620" cy="570" r="165" data-at="c0@0.5" data-fx="fade"/>
+      <path class="wire grey dashed" d="M 785 570 C 950 570, 990 346, 1160 346" data-at="c1+0.2" data-fx="fade"/>
+      <path class="wire grey dashed" d="M 785 570 C 950 570, 990 466, 1160 466" data-at="c1+0.4" data-fx="fade"/>
+      <path class="wire grey dashed" d="M 785 570 C 950 570, 990 586, 1160 586" data-at="c1+0.6" data-fx="fade"/>
+      <path class="wire grey dashed" d="M 785 570 C 950 570, 990 706, 1160 706" data-at="c1+0.8" data-fx="fade"/>
+    </svg>
+    <div class="node c-violet" style="left:530px;top:480px;width:180px;height:180px" data-at="0.4" data-fx="pop"><i class="ico" data-i="ai"></i></div>
+    <div class="label" style="left:470px;width:300px;top:670px;font-size:24px" data-at="0.6">Modelo de IA</div>
+    <div class="mark c-amber" style="position:absolute;left:594px;top:381px;width:52px;height:52px" data-at="c0@0.6" data-fx="pop"><i class="ico" data-i="lock"></i></div>
+
+    <div class="box grey" style="left:1160px;top:300px;width:560px;height:92px" data-at="c1+0.2" data-fx="right"><i class="ico" data-i="db"></i><div>Base de datos<small>Db2 for i</small></div></div>
+    <div class="box grey" style="left:1160px;top:420px;width:560px;height:92px" data-at="c1+0.4" data-fx="right"><i class="ico" data-i="code"></i><div>Código fuente<small>RPG · CL · COBOL</small></div></div>
+    <div class="box grey" style="left:1160px;top:540px;width:560px;height:92px" data-at="c1+0.6" data-fx="right"><i class="ico" data-i="wrench"></i><div>Compilador<small>CRTBNDRPG, CRTBNDCL…</small></div></div>
+    <div class="box grey" style="left:1160px;top:660px;width:560px;height:92px" data-at="c1+0.8" data-fx="right"><i class="ico" data-i="printer"></i><div>Spoolfiles<small>listados y joblogs</small></div></div>
+
+    <div class="mark c-red" style="position:absolute;left:948px;top:436px" data-at="c1@0.55" data-fx="pop"><i class="ico" data-i="x"></i></div>
+    <div class="mark c-red" style="position:absolute;left:948px;top:496px" data-at="c1@0.62" data-fx="pop"><i class="ico" data-i="x"></i></div>
+    <div class="mark c-red" style="position:absolute;left:948px;top:556px" data-at="c1@0.69" data-fx="pop"><i class="ico" data-i="x"></i></div>
+    <div class="mark c-red" style="position:absolute;left:948px;top:616px" data-at="c1@0.76" data-fx="pop"><i class="ico" data-i="x"></i></div>
+  </div>
+
+  <div class="abs" style="inset:0" data-at="c2+0.3" data-fx="fade">
+    <svg class="wires" viewBox="0 0 1920 1080" id="nxm"></svg>
+    <div class="box" style="left:300px;top:334px;width:340px;height:92px"><i class="ico" data-i="chat"></i>Chat de IA</div>
+    <div class="box" style="left:300px;top:484px;width:340px;height:92px"><i class="ico" data-i="code"></i>Editor / IDE</div>
+    <div class="box" style="left:300px;top:634px;width:340px;height:92px"><i class="ico" data-i="ai"></i>Agente propio</div>
+    <div class="box" style="left:1280px;top:289px;width:340px;height:92px"><i class="ico" data-i="db"></i>Db2 for i</div>
+    <div class="box" style="left:1280px;top:419px;width:340px;height:92px"><i class="ico" data-i="code"></i>Código fuente</div>
+    <div class="box" style="left:1280px;top:549px;width:340px;height:92px"><i class="ico" data-i="wrench"></i>Compilador</div>
+    <div class="box" style="left:1280px;top:679px;width:340px;height:92px"><i class="ico" data-i="printer"></i>Spoolfiles</div>
+    <div class="label" style="left:0;right:0;top:800px;color:var(--amber);font-size:28px" data-at="c2@0.55">3 apps × 4 sistemas = 12 integraciones hechas a medida</div>
+  </div>
+</section>
+
+<!-- ======================================================= 3. USB-C -->
+<section class="scene" data-scene="usbc">
+  <div class="head"><span class="kicker">Parte 1 · ¿Qué es MCP?</span><h2 data-at="0.2">MCP: un conector estándar</h2></div>
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <path id="u-a1" class="wire violet" d="M 450 390 C 650 390, 640 540, 840 540" data-at="c0@0.7" data-fx="draw"/>
+    <path id="u-a2" class="wire violet" d="M 450 540 L 840 540" data-at="c0@0.75" data-fx="draw"/>
+    <path id="u-a3" class="wire violet" d="M 450 690 C 650 690, 640 540, 840 540" data-at="c0@0.8" data-fx="draw"/>
+    <path id="u-s1" class="wire blue" d="M 1080 540 C 1280 540, 1270 390, 1470 390" data-at="c0@0.85" data-fx="draw"/>
+    <path id="u-s2" class="wire blue" d="M 1080 540 L 1470 540" data-at="c0@0.9" data-fx="draw"/>
+    <path id="u-s3" class="wire blue" d="M 1080 540 C 1280 540, 1270 690, 1470 690" data-at="c0@0.95" data-fx="draw"/>
+    <circle r="7" class="pk violet" data-fx="travel" data-path="u-a1" data-at="c2" data-dur="0.9" data-repeat="2.4" data-ease="linear"/>
+    <circle r="7" class="pk violet" data-fx="travel" data-path="u-a2" data-at="c2+0.8" data-dur="0.9" data-repeat="2.4" data-ease="linear"/>
+    <circle r="7" class="pk violet" data-fx="travel" data-path="u-a3" data-at="c2+1.6" data-dur="0.9" data-repeat="2.4" data-ease="linear"/>
+    <circle r="7" class="pk blue" data-fx="travel" data-path="u-s3" data-at="c2+0.9" data-dur="0.9" data-repeat="2.4" data-ease="linear"/>
+    <circle r="7" class="pk blue" data-fx="travel" data-path="u-s1" data-at="c2+1.7" data-dur="0.9" data-repeat="2.4" data-ease="linear"/>
+    <circle r="7" class="pk blue" data-fx="travel" data-path="u-s2" data-at="c2+2.5" data-dur="0.9" data-repeat="2.4" data-ease="linear"/>
+  </svg>
+  <div class="hub" style="left:840px;top:420px;width:240px;height:240px" data-at="c0+0.2" data-fx="pop">
+    <div><div style="font-size:74px;font-weight:800;color:#ede9fe;letter-spacing:-0.02em">MCP</div>
+    <div style="font-size:18px;color:#c4b5fd;font-weight:600;margin-top:4px">protocolo abierto</div></div>
+  </div>
+  <div class="tag" style="position:absolute;left:110px;top:290px" data-at="c0@0.5">Clientes (apps de IA)</div>
+  <div class="box" style="left:110px;top:344px;width:340px;height:92px" data-at="c0@0.5" data-fx="left"><i class="ico" data-i="app"></i>Claude Desktop</div>
+  <div class="box" style="left:110px;top:494px;width:340px;height:92px" data-at="c0@0.55" data-fx="left"><i class="ico" data-i="code"></i>IDE / editor</div>
+  <div class="box" style="left:110px;top:644px;width:340px;height:92px" data-at="c0@0.6" data-fx="left"><i class="ico" data-i="ai"></i>Tu propio agente</div>
+  <div class="tag" style="position:absolute;left:1470px;top:290px" data-at="c0@0.65">Servidores MCP</div>
+  <div class="box" style="left:1470px;top:344px;width:340px;height:92px" data-at="c0@0.65" data-fx="right"><i class="ico" data-i="branch"></i>GitHub</div>
+  <div class="box" style="left:1470px;top:494px;width:340px;height:92px" data-at="c0@0.7" data-fx="right"><i class="ico" data-i="db"></i>Bases de datos</div>
+  <div class="box b" style="left:1470px;top:644px;width:340px;height:92px" data-at="c0@0.75" data-fx="right"><i class="ico" data-i="server" style="color:var(--blue)"></i><div>AS/400<small>IBM i</small></div></div>
+  <div class="pill c-violet" style="left:735px;top:700px;width:450px;height:58px" data-at="c1+0.2" data-fx="pop"><span style="display:inline-block;width:40px;height:16px;border:3px solid currentColor;border-radius:9px"></span>Como un USB-C para la IA</div>
+</section>
+
+<!-- ======================================================= 4. ARQUITECTURA -->
+<section class="scene" data-scene="arquitectura">
+  <div class="head"><span class="kicker">Parte 1 · ¿Qué es MCP?</span><h2 data-at="0.2">Host, cliente y servidor</h2></div>
+  <div class="card v dash" style="left:110px;top:250px;width:780px;height:600px" data-at="c0+0.2" data-fx="fade">
+    <span class="tag" style="color:var(--violet)">Host</span>
+    <h3 style="margin-top:4px">Claude Desktop</h3>
+  </div>
+  <div class="box" style="left:160px;top:390px;width:680px;height:140px" data-at="c0@0.5"><div class="iconsq c-violet"><i class="ico" data-i="ai"></i></div><div>Modelo de IA<small>razona y decide qué herramienta usar</small></div></div>
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <path class="wire violet" d="M 500 534 L 500 596" data-at="c1+0.2" data-fx="draw" data-arrow/>
+    <path id="ar-req" class="wire violet" d="M 840 650 L 1266 650" data-at="c3+0.2" data-fx="draw" data-arrow/>
+    <path id="ar-res" class="wire blue" d="M 1270 720 L 844 720" data-at="c3+0.6" data-fx="draw" data-arrow/>
+    <circle r="7" class="pk violet" data-fx="travel" data-path="ar-req" data-at="c3+1.3" data-dur="0.9" data-repeat="1.8" data-ease="linear"/>
+    <circle r="7" class="pk blue" data-fx="travel" data-path="ar-res" data-at="c3+2.2" data-dur="0.9" data-repeat="1.8" data-ease="linear"/>
+  </svg>
+  <div class="box v" style="left:160px;top:600px;width:680px;height:170px;background:rgb(var(--rgb-violet) / .12)" data-at="c1+0.1"><div class="iconsq c-violet"><i class="ico" data-i="plug"></i></div><div>Cliente MCP<small>mantiene la conexión con cada servidor</small></div></div>
+
+  <div class="card b" style="left:1270px;top:420px;width:540px;height:420px" data-at="c2+0.1" data-fx="right">
+    <span class="tag" style="color:var(--blue)">Servidor MCP</span>
+    <h3 class="mono" style="margin-top:4px">server.py</h3>
+    <div class="mono" style="font-size:20px;line-height:1.75;margin-top:16px;color:#cbd5f5">
+      <div><i class="ico" data-i="wrench" style="width:20px;height:20px;vertical-align:-3px;color:var(--blue)"></i> execute_sql</div><div><i class="ico" data-i="wrench" style="width:20px;height:20px;vertical-align:-3px;color:var(--blue)"></i> execute_cl_command</div><div><i class="ico" data-i="wrench" style="width:20px;height:20px;vertical-align:-3px;color:var(--blue)"></i> read_source_member</div><div><i class="ico" data-i="wrench" style="width:20px;height:20px;vertical-align:-3px;color:var(--blue)"></i> compile_program</div><div><i class="ico" data-i="wrench" style="width:20px;height:20px;vertical-align:-3px;color:var(--blue)"></i> read_spoolfile</div>
+    </div>
+  </div>
+  <div class="abs" style="left:840px;width:430px;top:585px;text-align:center;font-size:22px;font-weight:700" data-at="c3+0.1">JSON-RPC 2.0 <span class="muted" style="font-weight:500">· stdio</span></div>
+  <div class="abs mono" style="left:905px;width:350px;top:752px;font-size:15.5px;line-height:1.5;white-space:pre;color:#cbd5f5;background:#0b1122;border:1px solid var(--line);border-radius:10px;padding:10px 14px" data-at="c3@0.45">{"jsonrpc": "2.0", "id": 7,
+ "method": "tools/call",
+ "params": {"name": "execute_sql", …}}</div>
+</section>
+
+<!-- ======================================================= 5. PRIMITIVAS -->
+<section class="scene" data-scene="primitivas">
+  <div class="head"><span class="kicker">Parte 1 · ¿Qué es MCP?</span><h2 data-at="0.2">Qué puede ofrecer un servidor</h2></div>
+  <div data-at="c3" data-fx="var" data-dur="0.6">
+  <div class="card glow" style="left:110px;top:310px;width:520px;height:440px" data-at="c1+0.1" data-fx="up">
+    <div class="iconsq c-violet"><i class="ico" data-i="wrench"></i></div>
+    <h3 style="margin-top:22px;font-size:40px">Herramientas</h3>
+    <div class="mono muted" style="font-size:20px;margin-top:4px">tools</div>
+    <p>Funciones que la IA puede <b style="color:var(--text)">ejecutar</b>.</p>
+    <div class="example">execute_sql(sql)</div>
+  </div>
+  </div>
+  <div class="card" style="left:700px;top:310px;width:520px;height:440px" data-at="c2+0.1" data-fx="up" data-dim="c3">
+    <div class="iconsq c-cyan"><i class="ico" data-i="book"></i></div>
+    <h3 style="margin-top:22px;font-size:40px">Recursos</h3>
+    <div class="mono muted" style="font-size:20px;margin-top:4px">resources</div>
+    <p>Datos que la IA puede <b style="color:var(--text)">leer</b>.</p>
+    <div class="example">file:///logs/app.log</div>
+  </div>
+  <div class="card" style="left:1290px;top:310px;width:520px;height:440px" data-at="c2@0.55" data-fx="up" data-dim="c3">
+    <div class="iconsq c-amber"><i class="ico" data-i="template"></i></div>
+    <h3 style="margin-top:22px;font-size:40px">Prompts</h3>
+    <div class="mono muted" style="font-size:20px;margin-top:4px">prompts</div>
+    <p>Plantillas <b style="color:var(--text)">reutilizables</b>.</p>
+    <div class="example">/revisar-programa</div>
+  </div>
+  <div class="pill c-violet" style="left:130px;top:284px;height:48px;width:250px;font-size:20px;background:#1d1640" data-at="c3+0.2" data-fx="pop"><i class="ico" data-i="star"></i>Este proyecto</div>
+</section>
+
+<!-- ======================================================= 6. FLUJO -->
+<section class="scene" data-scene="flujo">
+  <div class="head"><span class="kicker">Parte 1 · ¿Qué es MCP?</span><h2 data-at="0.2">Cómo se usa una herramienta</h2></div>
+  <div class="box v" style="left:400px;top:250px;width:320px;height:70px;justify-content:center"><i class="ico" data-i="plug" style="color:var(--violet)"></i>Cliente MCP</div>
+  <div class="box b" style="left:1200px;top:250px;width:320px;height:70px;justify-content:center"><i class="ico" data-i="server" style="color:var(--blue)"></i>Servidor MCP</div>
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <line class="lifeline" x1="560" y1="322" x2="560" y2="860"/>
+    <line class="lifeline" x1="1360" y1="322" x2="1360" y2="860"/>
+    <path class="wire violet" d="M 562 400 L 1356 400" data-at="c0+0.3" data-fx="draw" data-arrow/>
+    <path class="wire blue" d="M 1358 470 L 564 470" data-at="c0@0.55" data-fx="draw" data-arrow/>
+    <path class="wire violet" d="M 562 570 L 1356 570" data-at="c1+0.2" data-fx="draw" data-arrow/>
+    <path class="wire blue" d="M 1358 640 L 564 640" data-at="c1@0.5" data-fx="draw" data-arrow/>
+    <path class="wire violet" d="M 562 740 L 1356 740" data-at="c2@0.35" data-fx="draw" data-arrow/>
+    <path class="wire blue" d="M 1358 810 L 564 810" data-at="c3@0.3" data-fx="draw" data-arrow/>
+    <path class="wire blue" d="M 558 810 L 366 810" data-at="c3@0.65" data-fx="draw" data-arrow/>
+  </svg>
+  <div class="msg req" style="top:362px" data-at="c0+0.5" data-fx="fade">initialize</div>
+  <div class="msg res" style="top:432px" data-at="c0@0.62" data-fx="fade">capabilities · serverInfo</div>
+  <div class="msg req" style="top:532px" data-at="c1+0.4" data-fx="fade">tools/list</div>
+  <div class="msg res" style="top:602px" data-at="c1@0.58" data-fx="fade">[execute_sql, execute_cl_command, read_source_member, …]</div>
+  <div class="msg req" style="top:702px" data-at="c2@0.45" data-fx="fade">tools/call · execute_sql {"sql": "SELECT …"}</div>
+  <div class="msg res" style="top:772px" data-at="c3@0.38" data-fx="fade">result · [{"TABLE_NAME": "CLIENTES"}, …]</div>
+  <div class="box" style="left:96px;top:770px;width:270px;height:80px" data-at="c3@0.6" data-fx="left"><i class="ico" data-i="ai" style="color:var(--violet)"></i>Modelo de IA</div>
+  <div class="abs muted" style="left:366px;width:194px;top:776px;text-align:center;font-size:18px;font-weight:600" data-at="c3@0.7">contexto</div>
+  <div class="phase c-violet" style="top:400px" data-at="c0+0.2" data-fx="right"><b>Paso 1</b>Inicialización</div>
+  <div class="phase c-cyan" style="top:570px" data-at="c1+0.2" data-fx="right"><b>Paso 2</b>Descubrimiento</div>
+  <div class="phase c-green" style="top:740px" data-at="c2+0.2" data-fx="right"><b>Paso 3</b>Ejecución</div>
+</section>
+
+<!-- ======================================================= 7. PARTE 2 -->
+<section class="scene" data-scene="parte2">
+  <div class="head"><span class="kicker blue">Parte 2 · El MCP del AS/400</span><h2 class="mono" data-at="0.2" style="font-size:54px">as400-mcp-server</h2></div>
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <path id="p2-w1" class="wire violet" d="M 540 505 L 730 505" data-at="c2+0.3" data-fx="draw"/>
+    <path id="p2-w1b" class="wire ghost" d="M 730 505 L 540 505"/>
+    <path id="p2-w2" class="wire blue" d="M 1190 505 L 1380 505" data-at="c1@0.7" data-fx="draw"/>
+    <path id="p2-w2b" class="wire ghost" d="M 1380 505 L 1190 505"/>
+    <circle r="7" class="pk violet" data-fx="travel" data-path="p2-w1" data-at="c2+1.1" data-dur="0.6" data-repeat="2.2" data-ease="linear"/>
+    <circle r="7" class="pk blue" data-fx="travel" data-path="p2-w2" data-at="c2+1.8" data-dur="0.6" data-repeat="2.2" data-ease="linear"/>
+    <circle r="7" class="pk blue" data-fx="travel" data-path="p2-w2b" data-at="c2+2.5" data-dur="0.6" data-repeat="2.2" data-ease="linear"/>
+    <circle r="7" class="pk violet" data-fx="travel" data-path="p2-w1b" data-at="c2+3.2" data-dur="0.6" data-repeat="2.2" data-ease="linear"/>
+  </svg>
+  <div class="card" style="left:120px;top:380px;width:420px;height:250px" data-at="c2+0.1" data-fx="left">
+    <div class="iconsq c-violet"><i class="ico" data-i="app"></i></div>
+    <h3 style="margin-top:18px">Claude Desktop</h3><p>Host · cliente MCP</p>
+  </div>
+  <div class="card v" style="left:730px;top:380px;width:460px;height:250px;box-shadow:0 0 60px rgb(var(--rgb-violet) / .25)" data-at="c1+0.2" data-fx="scale">
+    <div class="iconsq c-green"><i class="ico" data-i="code"></i></div>
+    <h3 class="mono" style="margin-top:18px">server.py</h3><p>Python · FastMCP</p>
+  </div>
+  <div class="card b" style="left:1380px;top:380px;width:420px;height:250px" data-at="c1@0.7" data-fx="right">
+    <div class="iconsq c-blue"><i class="ico" data-i="server"></i></div>
+    <h3 style="margin-top:18px">IBM i</h3><p>Db2 for i · QSYS2 · spool</p>
+  </div>
+  <div class="abs" style="left:540px;width:190px;top:430px;text-align:center;font-size:19px;font-weight:700;color:var(--violet);line-height:1.3" data-at="c2+0.5">stdio<br><span class="muted" style="font-weight:500">JSON-RPC</span></div>
+  <div class="abs" style="left:1190px;width:190px;top:430px;text-align:center;font-size:19px;font-weight:700;color:var(--blue);line-height:1.3" data-at="c1@0.8">ODBC<br><span class="muted" style="font-weight:500">pyodbc</span></div>
+  <div class="abs code" style="left:660px;top:670px;font-size:20px;padding:12px 22px" data-at="c1@0.4"><span class="t-f">mcp</span> = <span class="t-p">FastMCP</span>(<span class="t-s">"as400-mcp-server"</span>)</div>
+  <div class="abs code" style="left:1340px;top:670px;font-size:20px;padding:12px 22px" data-at="c1@0.85"><span class="t-c">IBM i Access ODBC Driver</span></div>
+  <div class="abs code" style="left:170px;top:670px;font-size:20px;padding:12px 22px" data-at="c2@0.6"><span class="t-f">mcp</span>.<span class="t-p">run</span>()  <span class="t-c"># stdio</span></div>
+</section>
+
+<!-- ======================================================= 8. DECORADOR -->
+<section class="scene" data-scene="decorador">
+  <div class="head"><span class="kicker blue">Parte 2 · El MCP del AS/400</span><h2 data-at="0.2">Una herramienta = una función</h2></div>
+  <div class="code" style="left:96px;top:250px;width:900px;height:500px;font-size:22px" data-at="0.4" data-fx="left"><span class="tab">server.py</span><span class="hl c-amber" data-at="c0@0.45" data-fx="var"><span class="t-d">@mcp.tool()</span></span>
+<span class="t-k">def</span> <span class="hl c-cyan" data-at="c1@0.1" data-fx="var"><span class="t-f">execute_sql</span></span>(<span class="hl c-green" data-at="c1@0.4" data-fx="var">sql: <span class="t-t">str</span></span>) -> <span class="t-t">str</span>:
+    <span class="hl c-violet" data-at="c1@0.72" data-fx="var"><span class="t-s">"""
+Ejecuta una consulta SQL SELECT en el
+servidor AS/400 (IBM i).
+Solo se permiten consultas de lectura
+(SELECT, WITH, VALUES).
+"""</span></span>
+    validated_sql = _validate_sql(sql)
+    <span class="t-c">...</span></div>
+
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <path class="wire violet" d="M 1004 500 L 1120 500" data-at="c1+0.1" data-fx="draw" data-arrow/>
+  </svg>
+  <div class="abs" style="left:990px;width:140px;top:454px;text-align:center;font-size:19px;font-weight:750;color:var(--violet)" data-at="c1+0.1">FastMCP</div>
+
+  <div class="code" style="left:1128px;top:250px;width:696px;height:500px;font-size:21px" data-at="c1" data-fx="right"><span class="tab">esquema generado</span>{
+  <span class="hl c-cyan" data-at="c1@0.1" data-fx="var"><span class="t-p">"name"</span>: <span class="t-s">"execute_sql"</span>,</span>
+  <span class="hl c-violet" data-at="c1@0.72" data-fx="var"><span class="t-p">"description"</span>:
+  <span class="t-s">"Ejecuta una consulta SQL…"</span>,</span>
+  <span class="hl c-green" data-at="c1@0.4" data-fx="var"><span class="t-p">"inputSchema"</span>: {
+  <span class="t-p">"type"</span>: <span class="t-s">"object"</span>,
+  <span class="t-p">"properties"</span>: {
+    <span class="t-p">"sql"</span>: {<span class="t-p">"type"</span>: <span class="t-s">"string"</span>}
+  },
+  <span class="t-p">"required"</span>: [<span class="t-s">"sql"</span>]
+}</span>
+}</div>
+  <div class="pill c-violet" style="left:1560px;top:266px;height:40px;width:236px;font-size:17px;padding:0 14px" data-at="c2+0.2" data-fx="pop"><i class="ico" data-i="eye"></i>Lo que ve la IA</div>
+</section>
+
+<!-- ======================================================= 9. HERRAMIENTAS -->
+<section class="scene" data-scene="herramientas">
+  <div class="head"><span class="kicker blue">Parte 2 · El MCP del AS/400</span><h2 data-at="0.2">Las 5 herramientas</h2></div>
+  <div class="card dash" style="left:96px;top:280px;width:330px;height:520px" data-at="c0+0.2" data-fx="fade"></div>
+  <div class="card dash" style="left:444px;top:280px;width:330px;height:520px" data-at="c0+0.3" data-fx="fade"></div>
+  <div class="card dash" style="left:792px;top:280px;width:330px;height:520px" data-at="c0+0.4" data-fx="fade"></div>
+  <div class="card dash" style="left:1140px;top:280px;width:330px;height:520px" data-at="c0+0.5" data-fx="fade"></div>
+  <div class="card dash" style="left:1488px;top:280px;width:330px;height:520px" data-at="c0+0.6" data-fx="fade"></div>
+
+  <div class="card" style="left:96px;top:280px;width:330px;height:520px;padding:26px" data-at="c1" data-fx="up">
+    <div class="iconsq c-cyan"><i class="ico" data-i="db"></i></div>
+    <div class="mono" style="font-size:22px;font-weight:700;margin-top:24px;color:var(--cyan)">execute_sql</div>
+    <p>Consultas SQL de solo lectura</p>
+    <div class="mono" style="font-size:17px;line-height:1.5;margin-top:14px;color:var(--dim)">(sql)</div>
+    <div class="example" style="font-size:17px">SELECT * FROM QSYS2.SYSTABLES</div>
+  </div>
+  <div class="card" style="left:444px;top:280px;width:330px;height:520px;padding:26px" data-at="c2" data-fx="up">
+    <div class="iconsq c-amber"><i class="ico" data-i="terminal"></i></div>
+    <div class="mono" style="font-size:22px;font-weight:700;margin-top:24px;color:var(--amber)">execute_cl_command</div>
+    <p>Comandos CL de una lista permitida</p>
+    <div class="mono" style="font-size:17px;line-height:1.5;margin-top:14px;color:var(--dim)">(comando)</div>
+    <div class="example" style="font-size:17px">DSPFFD FILE(MYLIB/CLIENTES) …</div>
+  </div>
+  <div class="card" style="left:792px;top:280px;width:330px;height:520px;padding:26px" data-at="c3" data-fx="up">
+    <div class="iconsq c-green"><i class="ico" data-i="file"></i></div>
+    <div class="mono" style="font-size:22px;font-weight:700;margin-top:24px;color:var(--green)">read_source_member</div>
+    <p>Lee el código fuente de un miembro</p>
+    <div class="mono" style="font-size:17px;line-height:1.5;margin-top:14px;color:var(--dim)">(biblioteca, archivo_fuente, miembro)</div>
+    <div class="example" style="font-size:17px">QRPGLESRC(CALCPRICE)</div>
+  </div>
+  <div class="card" style="left:1140px;top:280px;width:330px;height:520px;padding:26px" data-at="c4" data-fx="up">
+    <div class="iconsq c-violet"><i class="ico" data-i="wrench"></i></div>
+    <div class="mono" style="font-size:22px;font-weight:700;margin-top:24px;color:var(--violet)">compile_program</div>
+    <p>Compila RPG, CL, COBOL y C</p>
+    <div class="mono" style="font-size:17px;line-height:1.5;margin-top:14px;color:var(--dim)">(library, source_file, member, command, options)</div>
+    <div class="example" style="font-size:17px">CRTBNDRPG · CRTBNDCL · CRTBNDCBL · …</div>
+  </div>
+  <div class="card" style="left:1488px;top:280px;width:330px;height:520px;padding:26px" data-at="c5" data-fx="up">
+    <div class="iconsq c-blue"><i class="ico" data-i="printer"></i></div>
+    <div class="mono" style="font-size:22px;font-weight:700;margin-top:24px;color:var(--blue)">read_spoolfile</div>
+    <p>Lee spoolfiles: listados y joblogs</p>
+    <div class="mono" style="font-size:17px;line-height:1.5;margin-top:14px;color:var(--dim)">(user, job_name, spoolfile_name, program_name, …)</div>
+    <div class="example" style="font-size:17px">QPJOBLOG · listado de compilación</div>
+  </div>
+</section>
+
+<!-- ======================================================= 10. CONEXION -->
+<section class="scene" data-scene="conexion">
+  <div class="head"><span class="kicker blue">Parte 2 · El MCP del AS/400</span><h2 data-at="0.2">Una conexión, reutilizable</h2></div>
+  <div class="code" style="left:96px;top:290px;width:540px;height:220px;font-size:22px;line-height:1.7" data-at="c0@0.5" data-fx="left"><span class="tab">.env</span><span class="t-p">DB_HOST</span>=mi-ibmi.empresa.com
+<span class="t-p">DB_USER</span>=MIUSUARIO
+<span class="t-p">DB_PASS</span>=••••••••</div>
+  <div class="card v" style="left:760px;top:290px;width:460px;height:220px;padding:24px 28px" data-at="c0@0.2" data-fx="up">
+    <div class="mono" style="font-size:26px;font-weight:700"><span style="color:var(--cyan)">pyodbc</span>.connect(…)</div>
+    <div class="mono muted" style="font-size:15.5px;line-height:1.5;margin-top:14px;white-space:normal">DRIVER={IBM i Access ODBC Driver}; SYSTEM=…; UID=…; PWD=…</div>
+    <div style="font-size:19px;margin-top:22px;color:var(--violet);font-weight:600">Una sola conexión global</div>
+  </div>
+  <div class="card b" style="left:1430px;top:290px;width:394px;height:220px" data-at="c0@0.35" data-fx="right">
+    <div class="iconsq c-blue"><i class="ico" data-i="server"></i></div>
+    <h3 style="margin-top:16px">IBM i</h3><p style="margin-top:2px">Db2 for i</p>
+  </div>
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <path class="wire grey" d="M 640 400 L 756 400" data-at="c0@0.6" data-fx="draw" data-arrow/>
+    <path id="cx-w" class="wire green" d="M 1222 400 L 1428 400" data-at="c0@0.4" data-fx="draw" style="stroke-width:6"/>
+    <path class="wire red" d="M 1222 400 L 1428 400" style="stroke-width:6;stroke-opacity:var(--p,0)" data-at="c2+0.1" data-fx="var" data-dur="0.3"/>
+    <path class="wire green" d="M 1222 400 L 1428 400" style="stroke-width:6;stroke-opacity:var(--p,0)" data-at="c2@0.62" data-fx="var" data-dur="0.3"/>
+    <circle r="8" class="pk green" data-fx="travel" data-path="cx-w" data-at="c1+0.2" data-dur="0.7" data-repeat="1.1" data-ease="linear" data-out="c2"/>
+    <circle r="8" class="pk green" data-fx="travel" data-path="cx-w" data-at="c2@0.8" data-dur="0.7" data-repeat="1.1" data-ease="linear"/>
+  </svg>
+  <div class="abs" style="left:1200px;width:250px;top:338px;text-align:center;font-size:18px;font-weight:700;color:var(--green)" data-at="c0@0.7" data-out="c2">conexión activa</div>
+  <div class="abs" style="left:1200px;width:250px;top:338px;text-align:center;font-size:18px;font-weight:700;color:var(--red)" data-at="c2+0.1" data-out="c2@0.6">✕ conexión perdida</div>
+  <div class="abs" style="left:1200px;width:250px;top:338px;text-align:center;font-size:18px;font-weight:700;color:var(--green)" data-at="c2@0.65">↻ reconectada</div>
+
+  <div class="card" style="left:96px;top:580px;width:860px;height:240px" data-at="c1+0.1" data-fx="up">
+    <div class="tag"><span style="color:var(--green)">♥</span> Health check antes de cada uso</div>
+    <div class="code" style="position:relative;margin-top:18px;font-size:22px;padding:14px 20px">SELECT 1 FROM SYSIBM.SYSDUMMY1</div>
+    <div class="verdict c-green" style="margin-top:16px"><span class="mark"><i class="ico" data-i="check"></i></span>¿Responde? → se reutiliza · ¿No? → reconecta</div>
+  </div>
+  <div class="card" style="left:1000px;top:580px;width:824px;height:260px;padding:22px 30px" data-at="c1+0.3" data-fx="up">
+    <div class="tag">Llamadas</div>
+    <div class="mono" style="font-size:20px;line-height:2.05;margin-top:6px">
+      <div data-at="c1@0.3" data-fx="left" style="white-space:pre">execute_sql        <span style="color:var(--green)">✓ misma conexión</span></div>
+      <div data-at="c1@0.5" data-fx="left" style="white-space:pre">read_source_member <span style="color:var(--green)">✓ misma conexión</span></div>
+      <div data-at="c1@0.7" data-fx="left" style="white-space:pre">compile_program    <span style="color:var(--green)">✓ misma conexión</span></div>
+      <div data-at="c2@0.7" data-fx="left" style="white-space:pre">execute_sql        <span style="color:var(--amber)">↻ reconectó y siguió</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 11. CL VIA SQL -->
+<section class="scene" data-scene="cl_sql">
+  <div class="head"><span class="kicker blue">Parte 2 · El MCP del AS/400</span><h2 data-at="0.2">Comandos CL… a través de SQL</h2></div>
+  <div class="pill c-amber" style="left:1400px;top:100px;width:424px;height:56px" data-at="c0@0.4" data-fx="pop"><i class="ico" data-i="db"></i>ODBC solo entiende SQL</div>
+
+  <div class="abs" style="left:0;top:262px;width:1920px;height:104px" data-at="c1+0.1" data-fx="up">
+    <div class="num abs" style="left:96px;top:24px">1</div>
+    <div class="abs" style="left:176px;top:18px;font-size:27px;font-weight:700">Comando CL<div class="muted" style="font-size:19px;font-weight:500">lo que pide la IA</div></div>
+    <div class="code" style="left:540px;top:14px;width:1284px;padding:16px 24px">DSPFFD FILE(MYLIB/CLIENTES) OUTPUT(*OUTFILE) OUTFILE(QTEMP/CAMPOS)</div>
+  </div>
+  <div class="abs" style="left:0;top:386px;width:1920px;height:104px" data-at="c1@0.55" data-fx="up">
+    <div class="num abs" style="left:96px;top:24px">2</div>
+    <div class="abs" style="left:176px;top:18px;font-size:27px;font-weight:700">Envuelto en SQL<div class="muted" style="font-size:19px;font-weight:500">viaja por ODBC</div></div>
+    <div class="code" style="left:540px;top:14px;width:1284px;padding:16px 24px"><span class="t-k">CALL</span> <span class="t-f">QSYS2.QCMDEXC</span>(<span class="t-s">'DSPFFD FILE(MYLIB/CLIENTES) OUTPUT(*OUTFILE) OUTFILE(QTEMP/CAMPOS)'</span>)</div>
+  </div>
+  <div class="abs" style="left:0;top:510px;width:1920px;height:104px" data-at="c2@0.4" data-fx="up">
+    <div class="num abs" style="left:96px;top:24px">3</div>
+    <div class="abs" style="left:176px;top:18px;font-size:27px;font-weight:700">Salida a QTEMP<div class="muted" style="font-size:19px;font-weight:500">no hay pantalla</div></div>
+    <div class="code" style="left:540px;top:14px;width:1284px;padding:16px 24px"><span class="t-d">QTEMP/CAMPOS</span>  <span class="t-c">← archivo temporal del job, un registro por campo</span></div>
+  </div>
+  <div class="abs" style="left:0;top:634px;width:1920px;height:210px" data-at="c3+0.1" data-fx="up">
+    <div class="num abs" style="left:96px;top:24px">4</div>
+    <div class="abs" style="left:176px;top:18px;font-size:27px;font-weight:700">Lectura<div class="muted" style="font-size:19px;font-weight:500">con execute_sql</div></div>
+    <div class="code" style="left:540px;top:14px;width:1284px;padding:14px 24px;line-height:1.4"><span class="t-k">SELECT</span> WHFLDE, WHFLDT, WHFTXT <span class="t-k">FROM</span> QTEMP.CAMPOS<table class="mini" data-at="c3@0.45" data-fx="fade"><tr><th>WHFLDE</th><th>WHFLDT</th><th>WHFTXT</th></tr><tr><td>CODCLI</td><td>P</td><td>Código de cliente</td></tr><tr><td>NOMBRE</td><td>A</td><td>Nombre o razón social</td></tr><tr><td>SALDO</td><td>P</td><td>Saldo actual</td></tr></table></div>
+  </div>
+</section>
+
+<!-- ======================================================= 12. FUENTE -->
+<section class="scene" data-scene="fuente">
+  <div class="head"><span class="kicker blue">Parte 2 · El MCP del AS/400</span><h2 data-at="0.2">Leer código fuente con un alias</h2></div>
+  <div class="card" style="left:96px;top:270px;width:820px;height:160px;padding:22px 28px" data-at="c0@0.5" data-fx="left">
+    <div class="tag">1 · Crear el alias</div>
+    <div class="mono" style="font-size:21px;line-height:1.6;margin-top:10px;white-space:pre"><span class="t-k">CREATE ALIAS</span> QTEMP.SRCCALCPRI
+    <span class="t-k">FOR</span> <span class="t-d">MYLIB.QRPGLESRC(CALCPRICE)</span></div>
+  </div>
+  <div class="card" style="left:96px;top:450px;width:820px;height:160px;padding:22px 28px" data-at="c1+0.1" data-fx="left">
+    <div class="tag">2 · Leer las líneas</div>
+    <div class="mono" style="font-size:21px;line-height:1.6;margin-top:10px;white-space:pre"><span class="t-k">SELECT</span> SRCSEQ, SRCDTA <span class="t-k">FROM</span> QTEMP.SRCCALCPRI
+    <span class="t-k">ORDER BY</span> SRCSEQ</div>
+  </div>
+  <div class="card" style="left:96px;top:630px;width:820px;height:124px;padding:22px 28px" data-at="c1@0.72" data-fx="left">
+    <div class="tag">3 · Limpiar</div>
+    <div class="mono" style="font-size:21px;line-height:1.6;margin-top:10px"><span class="t-k">DROP ALIAS</span> QTEMP.SRCCALCPRI</div>
+  </div>
+  <div class="win" style="left:990px;top:270px;width:834px;height:570px" data-at="c0@0.8" data-fx="right">
+    <div class="bar"><i></i><i></i><i></i><span class="mono">MYLIB/QRPGLESRC(CALCPRICE)</span></div>
+    <div class="mono" style="position:absolute;left:28px;top:74px;font-size:20px;line-height:1.62">
+      <div class="srcline" data-at="c1+0.30" data-fx="fade" data-dur="0.25"><span class="sq">001.00 |</span> <span class="t-k">**free</span></div>
+      <div class="srcline" data-at="c1+0.45" data-fx="fade" data-dur="0.25"><span class="sq">002.00 |</span> <span class="t-k">ctl-opt</span> dftactgrp(*no);</div>
+      <div class="srcline" data-at="c1+0.60" data-fx="fade" data-dur="0.25"><span class="sq">003.00 |</span></div>
+      <div class="srcline" data-at="c1+0.75" data-fx="fade" data-dur="0.25"><span class="sq">004.00 |</span> <span class="t-k">dcl-pi</span> *n;</div>
+      <div class="srcline" data-at="c1+0.90" data-fx="fade" data-dur="0.25"><span class="sq">005.00 |</span>   codigo <span class="t-t">char</span>(10);</div>
+      <div class="srcline" data-at="c1+1.05" data-fx="fade" data-dur="0.25"><span class="sq">006.00 |</span>   precio <span class="t-t">packed</span>(11:2);</div>
+      <div class="srcline" data-at="c1+1.20" data-fx="fade" data-dur="0.25"><span class="sq">007.00 |</span> <span class="t-k">end-pi</span>;</div>
+      <div class="srcline" data-at="c1+1.35" data-fx="fade" data-dur="0.25"><span class="sq">008.00 |</span></div>
+      <div class="srcline" data-at="c1+1.50" data-fx="fade" data-dur="0.25"><span class="sq">009.00 |</span> <span class="t-k">exec sql select</span> PRECIO <span class="t-k">into</span> :precio</div>
+      <div class="srcline" data-at="c1+1.65" data-fx="fade" data-dur="0.25"><span class="sq">010.00 |</span>   <span class="t-k">from</span> ARTICULOS <span class="t-k">where</span> CODIGO = :codigo;</div>
+      <div class="srcline" data-at="c1+1.80" data-fx="fade" data-dur="0.25"><span class="sq">011.00 |</span></div>
+      <div class="srcline" data-at="c1+1.95" data-fx="fade" data-dur="0.25"><span class="sq">012.00 |</span> *inlr = *on;</div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 13. SEGURIDAD -->
+<section class="scene" data-scene="seguridad">
+  <div class="head"><span class="kicker blue">Parte 2 · El MCP del AS/400</span><h2 data-at="0.2">Seguridad primero</h2></div>
+  <div class="node c-green" style="left:398px;top:270px;width:220px;height:220px;border-radius:40px" data-at="c0+0.2" data-fx="pop"><i class="ico" data-i="shield"></i></div>
+  <div class="abs" style="left:196px;top:560px;display:flex;align-items:center;gap:20px;font-size:36px;font-weight:700" data-at="c1@0.15" data-fx="left">
+    <span class="mark c-green" style="width:56px;height:56px"><i class="ico" data-i="check"></i></span>Análisis y compilación: <span style="color:var(--green)">sí</span>
+  </div>
+  <div class="abs" style="left:196px;top:660px;display:flex;align-items:center;gap:20px;font-size:36px;font-weight:700" data-at="c1@0.62" data-fx="left">
+    <span class="mark c-red" style="width:56px;height:56px"><i class="ico" data-i="x"></i></span>Destrucción: <span style="color:var(--red)">nunca</span>
+  </div>
+
+  <div data-at="c2+0.75" data-fx="var" data-dur="0.3"><div class="layer" style="top:320px" data-at="c0@0.5" data-fx="right"><span class="n">1</span>Identificadores AS/400 válidos<i class="ico ok" data-i="check"></i></div></div>
+  <div data-at="c2+1.45" data-fx="var" data-dur="0.3"><div class="layer" style="top:410px" data-at="c0@0.6" data-fx="right"><span class="n">2</span>SQL de solo lectura<i class="ico ok" data-i="check"></i></div></div>
+  <div data-at="c2+2.15" data-fx="var" data-dur="0.3"><div class="layer" style="top:500px" data-at="c0@0.7" data-fx="right"><span class="n">3</span>Lista blanca de comandos CL<i class="ico ok" data-i="check"></i></div></div>
+  <div data-at="c2+2.85" data-fx="var" data-dur="0.3"><div class="layer" style="top:590px" data-at="c0@0.8" data-fx="right"><span class="n">4</span>Errores sin datos sensibles<i class="ico ok" data-i="check"></i></div></div>
+  <div class="box b" style="left:1222px;top:744px;width:400px;height:84px;justify-content:center" data-at="c0@0.9" data-fx="up"><i class="ico" data-i="server" style="color:var(--blue)"></i>IBM i</div>
+  <svg class="wires" viewBox="0 0 1920 1080"><path id="sg-path" class="wire ghost" d="M 1422 262 L 1422 704"/></svg>
+  <div class="pill c-violet mono" style="left:0;top:0;width:380px;height:54px;font-size:19px;background:#1d1640;z-index:3" data-fx="travel" data-path="sg-path" data-at="c2+0.2" data-dur="3.4" data-ease="linear" data-hold>pedido de la IA</div>
+</section>
+
+<!-- ======================================================= 14. SQL -->
+<section class="scene" data-scene="sql">
+  <div class="head"><span class="kicker blue">Parte 2 · Seguridad</span><h2 data-at="0.2">SQL: solo lectura</h2></div>
+  <div class="rule" style="top:270px" data-at="c0+0.2" data-fx="left"><span class="mark c-violet"><i class="ico" data-i="scissors"></i></span>Se quitan los comentarios <code>--</code> <code>/* */</code></div>
+  <div class="rule" style="top:374px" data-at="c0@0.5" data-fx="left"><span class="mark c-red"><i class="ico" data-i="x"></i></span>Se rechaza el punto y coma <code>;</code></div>
+  <div class="rule" style="top:478px" data-at="c1+0.2" data-fx="left"><span class="mark c-green"><i class="ico" data-i="check"></i></span>Solo <code>SELECT</code> <code>WITH</code> <code>VALUES</code></div>
+  <div class="rule" style="top:582px" data-at="c1@0.62" data-fx="left"><span class="mark c-red"><i class="ico" data-i="x"></i></span>Bloquea <code>SELECT INTO</code> y <code>CALL</code></div>
+  <div class="rule" style="top:686px" data-at="c2+0.2" data-fx="left"><span class="mark c-amber"><i class="ico" data-i="limit"></i></span>Sin límite → <code>FETCH FIRST 1000 ROWS ONLY</code></div>
+
+  <div class="query" style="top:270px" data-at="c0@0.62" data-fx="right">
+    <div class="q">SELECT * FROM CLIENTES<span style="color:var(--red);font-weight:800">;</span> DROP TABLE CLIENTES</div>
+    <div class="verdict c-red" data-at="c0@0.8" data-fx="pop"><span class="mark"><i class="ico" data-i="x"></i></span>Rechazada · sentencias encadenadas</div>
+  </div>
+  <div class="query" style="top:404px" data-at="c1+0.3" data-fx="right">
+    <div class="q"><span style="color:var(--red)">DELETE</span> FROM CLIENTES</div>
+    <div class="verdict c-red" data-at="c1@0.3" data-fx="pop"><span class="mark"><i class="ico" data-i="x"></i></span>Rechazada · no es una lectura</div>
+  </div>
+  <div class="query" style="top:538px" data-at="c1@0.65" data-fx="right">
+    <div class="q">SELECT NOMBRE <span style="color:var(--red)">INTO</span> :X FROM CLIENTES</div>
+    <div class="verdict c-red" data-at="c1@0.82" data-fx="pop"><span class="mark"><i class="ico" data-i="x"></i></span>Rechazada · SELECT INTO</div>
+  </div>
+  <div class="query" style="top:672px" data-at="c2+0.3" data-fx="right">
+    <div class="q">SELECT * FROM QSYS2.SYSTABLES<span data-at="c2@0.55" data-fx="fade" style="color:var(--green)"> FETCH FIRST 1000 ROWS ONLY</span></div>
+    <div class="verdict c-green" data-at="c2@0.7" data-fx="pop"><span class="mark"><i class="ico" data-i="check"></i></span>Aceptada · con límite de seguridad</div>
+  </div>
+</section>
+
+<!-- ======================================================= 15. CL -->
+<section class="scene" data-scene="cl">
+  <div class="head"><span class="kicker blue">Parte 2 · Seguridad</span><h2 data-at="0.2">CL: lista blanca estricta</h2></div>
+  <div class="card g" style="left:96px;top:260px;width:850px;height:510px" data-at="c0@0.4" data-fx="up">
+    <div style="display:flex;align-items:center;gap:14px"><span class="mark c-green"><i class="ico" data-i="check"></i></span><h3>Permitidos</h3></div>
+    <div data-at="c1+0.1" data-fx="up" style="margin-top:22px"><div class="tag" style="margin-bottom:8px">Visualización</div>
+      <span class="chip c-green">DSP*</span><span class="chip c-green">DSPFD</span><span class="chip c-green">DSPFFD</span><span class="chip c-green">DSPPGMREF</span><span class="chip c-green">DSPJOBLOG</span><span class="chip c-green">WRK*</span></div>
+    <div data-at="c1@0.3" data-fx="up" style="margin-top:8px"><div class="tag" style="margin-bottom:8px">Verificación</div><span class="chip c-green">CHKOBJ</span></div>
+    <div data-at="c1@0.48" data-fx="up" style="margin-top:8px"><div class="tag" style="margin-bottom:8px">Compilación</div>
+      <span class="chip c-green">CRTBNDRPG</span><span class="chip c-green">CRTSQLRPGI</span><span class="chip c-green">CRTBNDCL</span><span class="chip c-green">CRTBNDCBL</span><span class="chip c-green">CRTBNDC</span><span class="chip c-green">CRTPGM</span><span class="chip c-green">CRTSRVPGM</span><span class="chip c-green">…</span></div>
+    <div data-at="c1@0.72" data-fx="up" style="margin-top:8px"><div class="tag" style="margin-bottom:8px">Sesión</div>
+      <span class="chip c-green">ADDLIBLE</span><span class="chip c-green">RMVLIBLE</span><span class="chip c-green">CHGCURLIB</span><span class="chip c-green">OVRDBF</span><span class="chip c-green">DLTOVR</span></div>
+  </div>
+  <div class="card r" style="left:974px;top:260px;width:850px;height:510px" data-at="c2+0.1" data-fx="up">
+    <div style="display:flex;align-items:center;gap:14px"><span class="mark c-red"><i class="ico" data-i="x"></i></span><h3>Bloqueados</h3></div>
+    <div style="margin-top:26px">
+      <span class="chip c-red" data-at="c2@0.12" data-fx="pop">DLTLIB</span><span class="chip c-red" data-at="c2@0.15" data-fx="pop">DLTOBJ</span><span class="chip c-red" data-at="c2@0.18" data-fx="pop">DLTF</span><span class="chip c-red" data-at="c2@0.21" data-fx="pop">CLRPFM</span><span class="chip c-red" data-at="c2@0.24" data-fx="pop">CHGOBJ</span><span class="chip c-red" data-at="c2@0.27" data-fx="pop">GRTOBJAUT</span><span class="chip c-red" data-at="c2@0.30" data-fx="pop">RVKOBJAUT</span><span class="chip c-red" data-at="c2@0.33" data-fx="pop">CALL</span><span class="chip c-red" data-at="c2@0.36" data-fx="pop">SBMJOB</span><span class="chip c-red" data-at="c2@0.39" data-fx="pop">CPYF</span><span class="chip c-red" data-at="c2@0.42" data-fx="pop">MOVOBJ</span><span class="chip c-red" data-at="c2@0.45" data-fx="pop">RNMOBJ</span>
+    </div>
+    <div style="margin-top:22px;padding:18px 22px;border-radius:14px;background:rgb(var(--rgb-red) / .08);border:1.5px solid rgb(var(--rgb-red) / .5)" data-at="c2@0.62" data-fx="up">
+      <span class="chip c-red" style="font-size:22px;margin:0">RUNSQLSTM</span>
+      <div style="font-size:23px;margin-top:12px;line-height:1.35">Ejecuta cualquier SQL → <b style="color:var(--red)">saltearía la validación de solo lectura</b></div>
+    </div>
+    <div class="muted" style="font-size:22px;margin-top:20px" data-at="c2@0.8" data-fx="fade">…y cualquier comando que no esté en la lista.</div>
+  </div>
+</section>
+
+<!-- ======================================================= 16. IDENTIFICADORES -->
+<section class="scene" data-scene="identificadores">
+  <div class="head"><span class="kicker blue">Parte 2 · Seguridad</span><h2 data-at="0.2">Identificadores y errores</h2></div>
+  <div class="card" style="left:96px;top:260px;width:860px;height:250px" data-at="c0+0.3" data-fx="up">
+    <div class="tag">Patrón de nombres AS/400</div>
+    <div class="mono" style="font-size:46px;font-weight:700;margin-top:18px;color:var(--amber)">^[A-Z0-9#@$]{1,10}$</div>
+    <p style="margin-top:14px">1 a 10 caracteres · letras, números, # @ $</p>
+  </div>
+  <div class="pill c-green" style="left:96px;top:532px;height:50px;width:380px;font-size:21px" data-at="c1+0.1" data-fx="pop"><i class="ico" data-i="shield"></i>Previene la inyección SQL</div>
+  <div class="exrow" style="top:262px" data-at="c0@0.4" data-fx="right"><span class="n">MYLIB</span><span class="mark c-green" style="width:36px;height:36px"><i class="ico" data-i="check"></i></span></div>
+  <div class="exrow" style="top:318px" data-at="c0@0.48" data-fx="right"><span class="n">QRPGLESRC</span><span class="mark c-green" style="width:36px;height:36px"><i class="ico" data-i="check"></i></span></div>
+  <div class="exrow" style="top:374px" data-at="c0@0.56" data-fx="right"><span class="n">CALC$01</span><span class="mark c-green" style="width:36px;height:36px"><i class="ico" data-i="check"></i></span></div>
+  <div class="exrow" style="top:430px" data-at="c0@0.66" data-fx="right"><span class="n">MYLIB; DROP</span><span class="mark c-red" style="width:36px;height:36px"><i class="ico" data-i="x"></i></span><span class="muted">caracteres inválidos</span></div>
+  <div class="exrow" style="top:486px" data-at="c0@0.76" data-fx="right"><span class="n">NOMBREMUYLARGO</span><span class="mark c-red" style="width:36px;height:36px"><i class="ico" data-i="x"></i></span><span class="muted">más de 10 caracteres</span></div>
+
+  <div class="card" style="left:96px;top:612px;width:1728px;height:200px;padding:22px 30px" data-at="c2+0.1" data-fx="up">
+    <div class="tag">Errores sanitizados</div>
+    <div class="code" style="left:30px;top:66px;width:720px;font-size:19px;padding:14px 18px;line-height:1.55;border-color:rgb(var(--rgb-red) / .5)">Communication link failure.
+<span style="color:var(--red)">SYSTEM=mi-ibmi.empresa.com;UID=MIUSUARIO;PWD=Secreto123</span></div>
+    <div class="abs mono" style="left:750px;width:180px;top:80px;text-align:center;font-size:15px;color:var(--violet);font-weight:700" data-at="c2@0.45" data-fx="fade">_sanitize_error()</div>
+    <svg class="wires" viewBox="0 0 1920 1080" style="left:-96px;top:-612px"><path class="wire violet" d="M 858 724 L 1014 724" data-at="c2@0.4" data-fx="draw" data-arrow/></svg>
+    <div class="code" style="left:930px;top:66px;width:766px;font-size:19px;padding:14px 18px;line-height:1.55;border-color:rgb(var(--rgb-green) / .5)" data-at="c2@0.55" data-fx="right">Communication link failure.
+<span style="color:var(--green)">SYSTEM=***;UID=***;PWD=***</span></div>
+  </div>
+</section>
+
+<!-- ======================================================= 17. DEMO -->
+<section class="scene" data-scene="demo">
+  <div class="head"><span class="kicker blue">Parte 2 · En acción</span><h2 data-at="0.2">Ejemplo: compilar y revisar errores</h2></div>
+  <div class="abs" style="left:1560px;top:72px"><span class="kicker plain">Ejemplo ilustrativo</span></div>
+  <div class="win" style="left:96px;top:250px;width:780px;height:600px" data-at="0.3" data-fx="left">
+    <div class="bar"><i></i><i></i><i></i><span>Claude Desktop</span></div>
+    <div class="bubble user" style="top:80px" data-at="c0@0.35" data-fx="up">Compilá CALCPRICE de MYLIB y decime si hay errores</div>
+    <div class="toolrow" style="top:224px" data-at="c1+0.2" data-fx="up"><i class="ico" data-i="wrench"></i>compile_program</div>
+    <div class="toolrow" style="top:280px" data-at="c3+0.1" data-fx="up"><i class="ico" data-i="wrench"></i>read_spoolfile</div>
+    <div class="bubble bot" style="top:350px;height:170px" data-at="c4+0.1" data-fx="up"><span data-at="c4+0.3" data-fx="type" data-cps="34">Encontré 1 error en la línea 12: la variable TOTAL no está definida (RNF7030). Declarala, por ejemplo: dcl-s total packed(11:2);</span></div>
+  </div>
+  <div class="win" style="left:916px;top:250px;width:908px;height:600px" data-at="0.5" data-fx="right">
+    <div class="bar"><i></i><i></i><i></i><span class="mono">as400-mcp-server</span></div>
+    <div class="log">
+      <div class="lv" data-at="c1+0.3" data-fx="fade">→ compile_program(library="MYLIB",</div>
+      <div class="lv" data-at="c1+0.3" data-fx="fade">      source_file="QRPGLESRC", member="CALCPRICE")</div>
+      <div class="lm" data-at="c2+0.1" data-fx="fade"># validación OK: nombres y CRTBNDRPG permitidos</div>
+      <div class="lm" data-at="c2@0.4" data-fx="fade">CALL QSYS2.QCMDEXC('CRTBNDRPG PGM(MYLIB/CALCPRICE)</div>
+      <div class="lm" data-at="c2@0.4" data-fx="fade">   SRCFILE(MYLIB/QRPGLESRC) SRCMBR(CALCPRICE)')</div>
+      <div class="lr" data-at="c2@0.8" data-fx="fade">← Error de compilacion · Usa read_spoolfile()</div>
+      <div class="gap"></div>
+      <div class="lv" data-at="c3+0.1" data-fx="fade">→ read_spoolfile()</div>
+      <div class="lb" data-at="c3@0.3" data-fx="fade">← CALCPRICE · 123456/QUSER/QZDASOINIT</div>
+      <div class="lv" data-at="c3@0.5" data-fx="fade">→ read_spoolfile(job_name="123456/QUSER/QZDASOINIT",</div>
+      <div class="lv" data-at="c3@0.5" data-fx="fade">      spoolfile_name="CALCPRICE")</div>
+      <div class="spool" data-at="c3@0.75" data-fx="up">*RNF7030 30   12  El nombre o indicador TOTAL
+                   no está definido.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 18. SETUP -->
+<section class="scene" data-scene="setup">
+  <div class="head"><span class="kicker blue">Parte 2 · Instalación</span><h2 data-at="0.2">Ponerlo en marcha</h2></div>
+  <div class="card" style="left:96px;top:260px;width:540px;height:430px" data-at="c0+0.2" data-fx="up">
+    <div class="num">1</div><h3 style="margin-top:18px">Instalar</h3>
+    <div class="code" style="position:relative;margin-top:22px;font-size:22px;padding:16px 20px">pip install -e .</div>
+    <p style="font-size:21px">mcp · pyodbc · python-dotenv<br>+ IBM i Access ODBC Driver</p>
+  </div>
+  <div class="card" style="left:690px;top:260px;width:540px;height:430px" data-at="c0@0.4" data-fx="up">
+    <div class="num">2</div><h3 style="margin-top:18px">Configurar <span class="mono">.env</span></h3>
+    <div class="code" style="position:relative;margin-top:22px;font-size:20px;padding:16px 20px;line-height:1.75"><span class="t-p">DB_HOST</span>=mi-ibmi.empresa.com
+<span class="t-p">DB_USER</span>=MIUSUARIO
+<span class="t-p">DB_PASS</span>=••••••••</div>
+  </div>
+  <div class="card" style="left:1284px;top:260px;width:540px;height:430px" data-at="c1+0.1" data-fx="up">
+    <div class="num">3</div><h3 style="margin-top:18px">Registrar en Claude Desktop</h3>
+    <div class="code" style="position:relative;margin-top:16px;font-size:18px;padding:14px 20px;line-height:1.5">{
+  <span class="t-p">"mcpServers"</span>: {
+    <span class="t-p">"as400"</span>: {
+      <span class="t-p">"command"</span>: <span class="t-s">"python"</span>,
+      <span class="t-p">"args"</span>: [<span class="t-s">"…/server.py"</span>]
+    }
+  }
+}</div>
+  </div>
+  <div class="pill c-green" style="left:440px;top:730px;width:1040px;height:66px;font-size:26px" data-at="c2+0.1" data-fx="pop"><i class="ico" data-i="check"></i>Listo: tu asistente ya puede trabajar con tu AS/400</div>
+</section>
+
+<!-- ======================================================= 19. CIERRE -->
+<section class="scene" data-scene="cierre">
+  <div class="abs" style="left:0;right:0;top:150px;text-align:center" data-at="0.2" data-fx="scale">
+    <h1 class="title" style="font-size:120px"><span class="g-violet">MCP</span><span class="plus"> + </span><span class="g-blue">AS/400</span></h1>
+  </div>
+  <div class="card" style="left:150px;top:400px;width:500px;height:150px;display:flex;align-items:center;gap:22px" data-at="c0@0.4" data-fx="up"><div class="iconsq c-violet" style="flex:none"><i class="ico" data-i="plug"></i></div><div style="font-size:25px;font-weight:600;line-height:1.3">Un estándar para conectar la IA con tus sistemas</div></div>
+  <div class="card" style="left:710px;top:400px;width:500px;height:150px;display:flex;align-items:center;gap:22px" data-at="c1+0.1" data-fx="up"><div class="iconsq c-blue" style="flex:none"><i class="ico" data-i="wrench"></i></div><div style="font-size:25px;font-weight:600;line-height:1.3">5 herramientas para trabajar con IBM i</div></div>
+  <div class="card" style="left:1270px;top:400px;width:500px;height:150px;display:flex;align-items:center;gap:22px" data-at="c1@0.55" data-fx="up"><div class="iconsq c-green" style="flex:none"><i class="ico" data-i="shield"></i></div><div style="font-size:25px;font-weight:600;line-height:1.3">Útil, pero seguro por diseño</div></div>
+  <div class="abs mono" style="left:0;right:0;top:620px;text-align:center;font-size:32px;color:#cbd5f5" data-at="c1@0.8" data-fx="up"><i class="ico" data-i="branch" style="width:32px;height:32px;vertical-align:-5px;color:var(--violet)"></i> github.com/LorenteFacundo/python-mcp-as400</div>
+  <div class="abs" style="left:0;right:0;top:720px;text-align:center;font-size:48px;font-weight:750" data-at="c2" data-fx="pop">¡Gracias por mirar!</div>
+</section>
+
+  <div id="sub"><span></span></div>
+  <div id="progress"><i></i></div>
+</div>
+
+<script src="build/timeline.js"></script>
+<script>
+(function () {
+  "use strict";
+  const SVGNS = "http://www.w3.org/2000/svg";
+
+  // ---------------------------------------------------------------- iconos
+  const ICONS = {
+    ai: '<path d="M12 3l1.8 4.9L18.7 9.7l-4.9 1.8L12 16.4l-1.8-4.9L5.3 9.7l4.9-1.8z"/><path d="M18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>',
+    db: '<ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v13c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-13"/><path d="M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8"/>',
+    code: '<path d="M8.5 7L3.5 12l5 5M15.5 7l5 5-5 5M13.5 4.5l-3 15"/>',
+    wrench: '<path d="M14.7 6.3a4.2 4.2 0 0 0-5.5 5.5L3.5 17.5l3 3 5.7-5.7a4.2 4.2 0 0 0 5.5-5.5l-2.6 2.6-2.4-.6-.6-2.4z"/>',
+    printer: '<path d="M6.5 9V3.5h11V9"/><rect x="2.5" y="9" width="19" height="8" rx="2"/><rect x="6.5" y="14" width="11" height="6.5"/>',
+    server: '<rect x="3.5" y="3.5" width="17" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="7" rx="1.5"/><path d="M7.5 7h.01M7.5 17h.01M11 7h5M11 17h5"/>',
+    app: '<rect x="2.5" y="4" width="19" height="16" rx="2.5"/><path d="M2.5 8.5h19M6 6.3h.01M8.5 6.3h.01"/>',
+    plug: '<path d="M9 2.5v5M15 2.5v5M6 7.5h12v3.5a6 6 0 0 1-12 0zM12 17v4.5"/>',
+    shield: '<path d="M12 2.8l7.5 2.9v6c0 4.7-3.2 8-7.5 9.5-4.3-1.5-7.5-4.8-7.5-9.5v-6z"/><path d="M8.7 12.2l2.3 2.3 4.4-4.6"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+    x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+    lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
+    file: '<path d="M14 3H6.5a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V7.5z"/><path d="M14 3v4.5h4.5M9 13h6M9 16.5h6"/>',
+    terminal: '<rect x="2.5" y="4" width="19" height="16" rx="2.5"/><path d="M6.5 9.5l3 2.5-3 2.5M12 15h5"/>',
+    branch: '<circle cx="6" cy="5.5" r="2.2"/><circle cx="6" cy="18.5" r="2.2"/><circle cx="18" cy="8" r="2.2"/><path d="M6 7.7v8.6M18 10.2c0 4-6 3.5-10.5 6.7"/>',
+    book: '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H20v15H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H20v-3"/>',
+    template: '<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M7.5 8h9M7.5 12h5M7.5 16h7"/>',
+    star: '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
+    chat: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/>',
+    eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
+    scissors: '<circle cx="6" cy="6.5" r="2.5"/><circle cx="6" cy="17.5" r="2.5"/><path d="M8 8.2l12 9.3M8 15.8L20 6.5"/>',
+    limit: '<path d="M4 6h16M4 12h10M4 18h6"/><path d="M17 15v6M14.5 18.5L17 21l2.5-2.5"/>',
+  };
+  document.querySelectorAll("i.ico[data-i]").forEach((el) => {
+    el.innerHTML = '<svg viewBox="0 0 24 24">' + (ICONS[el.dataset.i] || "") + "</svg>";
+  });
+
+  // Cables del problema N x M (3 apps x 4 sistemas)
+  (function buildNxM() {
+    const svg = document.getElementById("nxm");
+    const apps = [380, 530, 680], systems = [335, 465, 595, 725];
+    let k = 0;
+    apps.forEach((ay) => systems.forEach((sy) => {
+      const p = document.createElementNS(SVGNS, "path");
+      p.setAttribute("d", `M 640 ${ay} C 900 ${ay}, 1020 ${sy}, 1280 ${sy}`);
+      p.setAttribute("class", "wire amber");
+      p.dataset.at = `c2+${(0.5 + k * 0.09).toFixed(2)}`;
+      p.dataset.fx = "draw";
+      svg.appendChild(p);
+      k++;
+    }));
+  })();
+
+  // ---------------------------------------------------------------- motor
+  const TL = window.TIMELINE;
+  const FADE = 0.4;
+  const DUR = { draw: 0.8, travel: 1, pop: 0.55, var: 0.5 };
+  const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+  const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+  const easeInOut = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+  const backOut = (p) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); };
+
+  // "c2" inicio de la frase 2 · "c2e" fin · "c2@0.5" mitad · "end" fin de escena · "+0.3" desplazamiento
+  function resolveTime(expr, sc) {
+    const s = String(expr).replace(/\s+/g, "");
+    const m = s.match(/^(c(\d+)(e|@([\d.]+))?|end)?([+-][\d.]+)?$/);
+    if (!m || (!m[1] && !m[5])) {
+      const n = parseFloat(s);
+      if (isNaN(n)) throw new Error(`Tiempo invalido "${expr}" en ${sc.id}`);
+      return n;
+    }
+    let t = 0;
+    if (m[1] === "end") t = sc.dur;
+    else if (m[2] != null) {
+      const c = sc.cues[+m[2]];
+      if (!c) throw new Error(`La escena ${sc.id} no tiene la frase c${m[2]}`);
+      if (m[3] === "e") t = c.end;
+      else if (m[4] != null) t = c.start + parseFloat(m[4]) * (c.end - c.start);
+      else t = c.start;
+    }
+    if (m[5]) t += parseFloat(m[5]);
+    return t;
+  }
+
+  function makeHead(path) {
+    const L = path.getTotalLength();
+    const p1 = path.getPointAtLength(L), p0 = path.getPointAtLength(Math.max(0, L - 2));
+    const ang = (Math.atan2(p1.y - p0.y, p1.x - p0.x) * 180) / Math.PI;
+    const head = document.createElementNS(SVGNS, "path");
+    head.setAttribute("d", "M 2 0 L -14 -8 L -14 8 Z");
+    head.setAttribute("transform", `translate(${p1.x} ${p1.y}) rotate(${ang})`);
+    head.setAttribute("fill", getComputedStyle(path).stroke);
+    head.style.opacity = 0;
+    path.after(head);
+    return head;
+  }
+
+  const scenes = [];
+  const byId = Object.fromEntries(TL.scenes.map((s) => [s.id, s]));
+  document.querySelectorAll("section.scene").forEach((el) => {
+    const sc = byId[el.dataset.scene];
+    if (!sc) { console.warn("Escena sin timeline:", el.dataset.scene); el.remove(); return; }
+    el.style.display = "block"; // necesario para medir paths y textos
+    const anims = [];
+    el.querySelectorAll("[data-at]").forEach((a) => {
+      const fx = a.dataset.fx || "up";
+      const o = {
+        el: a, fx,
+        at: resolveTime(a.dataset.at, sc),
+        dur: parseFloat(a.dataset.dur || DUR[fx] || 0.6),
+        out: a.dataset.out ? resolveTime(a.dataset.out, sc) : null,
+        dim: a.dataset.dim ? resolveTime(a.dataset.dim, sc) : null,
+        linear: a.dataset.ease === "linear",
+      };
+      if (fx === "draw") {
+        o.len = a.getTotalLength();
+        a.style.strokeDasharray = `${o.len} ${o.len}`;
+        if (a.hasAttribute("data-arrow")) o.head = makeHead(a);
+      }
+      if (fx === "travel") {
+        o.path = document.getElementById(a.dataset.path);
+        o.plen = o.path.getTotalLength();
+        o.rep = a.dataset.repeat ? parseFloat(a.dataset.repeat) : null;
+        o.hold = a.hasAttribute("data-hold");
+        o.html = !(a instanceof SVGElement);
+      }
+      if (fx === "type") { o.text = a.textContent; o.cps = parseFloat(a.dataset.cps || 40); }
+      anims.push(o);
+    });
+    el.style.display = "none";
+    scenes.push({ el, sc, anims });
+  });
+
+  function apply(a, t) {
+    const s = a.el.style;
+    const raw = (t - a.at) / a.dur;
+    const p = clamp01(raw);
+    const e = easeOut(p);
+    let op = 1, tr = null, sc = null;
+    switch (a.fx) {
+      case "up": op = e; tr = `0 ${(1 - e) * 28}px`; break;
+      case "down": op = e; tr = `0 ${-(1 - e) * 28}px`; break;
+      case "left": op = e; tr = `${-(1 - e) * 48}px 0`; break;
+      case "right": op = e; tr = `${(1 - e) * 48}px 0`; break;
+      case "fade": op = e; break;
+      case "scale": op = e; sc = 0.94 + 0.06 * e; break;
+      case "pop": op = clamp01(p * 2.5); sc = 0.5 + 0.5 * backOut(p); break;
+      case "draw": op = p > 0 ? 1 : 0; s.strokeDashoffset = a.len * (1 - easeInOut(p)); break;
+      case "var": op = a.out != null ? 1 : null; s.setProperty("--p", e.toFixed(4)); break;
+      case "type": {
+        const n = Math.max(0, Math.floor((t - a.at) * a.cps));
+        const txt = a.text.slice(0, n) + (n > 0 && n < a.text.length ? "▍" : "");
+        if (a.el.textContent !== txt) a.el.textContent = txt;
+        op = t >= a.at ? 1 : 0;
+        break;
+      }
+      case "travel": {
+        let local = t - a.at;
+        if (a.rep) {
+          if (local < 0) { op = 0; break; }
+          local = local % a.rep;
+        }
+        let q = local / a.dur;
+        if (q < 0) op = 0;
+        else if (q > 1) op = a.hold ? 1 : 0;
+        else op = a.hold ? clamp01(q * 8) : Math.min(1, q * 8, (1 - q) * 8);
+        q = clamp01(q);
+        const pt = a.path.getPointAtLength(a.plen * (a.linear ? q : easeInOut(q)));
+        if (a.html) s.translate = `${pt.x - a.el.offsetWidth / 2}px ${pt.y - a.el.offsetHeight / 2}px`;
+        else a.el.setAttribute("transform", `translate(${pt.x} ${pt.y})`);
+        break;
+      }
+    }
+    if (op !== null) {
+      if (a.out != null) op *= 1 - easeOut(clamp01((t - a.out) / 0.4));
+      if (a.dim != null) op *= 1 - 0.65 * easeOut(clamp01((t - a.dim) / 0.5));
+      s.opacity = op;
+      if (a.head) a.head.style.opacity = p > 0.96 ? op : 0;
+    }
+    if (tr !== null) s.translate = tr;
+    if (sc !== null) s.scale = sc;
+  }
+
+  const subEl = document.querySelector("#sub span");
+  const barEl = document.querySelector("#progress i");
+
+  function renderAt(t) {
+    let sub = null, subOp = 0;
+    for (const S of scenes) {
+      const local = t - S.sc.start;
+      if (local < 0 || local > S.sc.dur) { S.el.style.display = "none"; continue; }
+      S.el.style.display = "block";
+      S.el.style.opacity = clamp01(Math.min(local / FADE, (S.sc.dur - local) / FADE));
+      for (const a of S.anims) apply(a, local);
+      const cues = S.sc.cues;
+      for (let i = 0; i < cues.length; i++) {
+        const from = cues[i].start - 0.1;
+        const to = i + 1 < cues.length ? cues[i + 1].start - 0.1 : Math.min(cues[i].end + 0.6, S.sc.dur - 0.2);
+        if (local >= from && local < to) {
+          sub = cues[i].hide ? null : cues[i].sub;
+          subOp = Math.min(clamp01((local - from) / 0.15), clamp01((to - local) / 0.15));
+        }
+      }
+    }
+    if (subEl.textContent !== (sub || "")) subEl.textContent = sub || "";
+    subEl.style.opacity = sub ? subOp : 0;
+    barEl.style.width = `${(100 * t) / TL.total}%`;
+  }
+
+  window.renderAt = renderAt;
+  window.ready = Promise.all([
+    document.fonts.load('700 20px "Inter"'),
+    document.fonts.load('400 20px "JBM"'),
+  ]).then(() => document.fonts.ready).then(() => { renderAt(0); return TL.total; });
+
+  // ---------------------------------------------------------------- vista previa en el navegador
+  // escenas.html?preview  -> reproduce con audio (click para empezar)
+  // escenas.html?t=42.5   -> muestra un instante
+  const params = new URLSearchParams(location.search);
+  const fit = () => {
+    const k = Math.min(innerWidth / 1920, innerHeight / 1080);
+    document.getElementById("stage").style.transform = `scale(${k})`;
+  };
+  if (params.has("preview") || params.has("t")) { fit(); addEventListener("resize", fit); }
+  if (params.has("t")) window.ready.then(() => renderAt(parseFloat(params.get("t"))));
+  if (params.has("preview")) {
+    const audio = new Audio("build/narration.wav");
+    const loop = () => { renderAt(audio.currentTime); requestAnimationFrame(loop); };
+    document.addEventListener("click", () => (audio.paused ? audio.play() : audio.pause()));
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "ArrowRight") audio.currentTime += 5;
+      if (ev.key === "ArrowLeft") audio.currentTime -= 5;
+    });
+    window.ready.then(loop);
+  }
+})();
+</script>
+</body>
+</html>
