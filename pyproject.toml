@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "mcp>=1.0.0",
+    "mcp>=1.0.0,<2",  # en mcp 2.x FastMCP se renombro a MCPServer
     "pyodbc>=5.0.0",
     "python-dotenv>=1.0.0",
 ]
