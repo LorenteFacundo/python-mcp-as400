@@ -8,6 +8,8 @@
 
 Permite que un asistente de IA consulte bases de datos, lea codigo fuente, compile programas y analice spoolfiles en un IBM i — todo con controles de seguridad estrictos que impiden operaciones destructivas.
 
+**Video explicativo (5 min):** [que es MCP y como funciona este servidor](docs/video/mcp-as400-explicacion.mp4) · [subtitulos](docs/video/subtitulos.srt) · [como se hizo](docs/video/README.md)
+
 ---
 
 ## Herramientas disponibles

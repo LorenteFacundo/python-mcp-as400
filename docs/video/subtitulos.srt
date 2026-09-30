@@ -1,0 +1,255 @@
+1
+00:00:00,600 --> 00:00:06,881
+Hola. En este video vamos a ver qué es un servidor MCP y cómo funciona el MCP para AS/400 que desarrollé.
+
+2
+00:00:07,331 --> 00:00:13,914
+Un puente entre un asistente de inteligencia artificial y un sistema IBM i, pensado para ser útil sin poner nada en riesgo.
+
+3
+00:00:15,514 --> 00:00:19,856
+Un modelo de lenguaje sabe razonar y escribir código, pero por sí solo está aislado.
+
+4
+00:00:20,306 --> 00:00:24,265
+No puede consultar tu base de datos, leer tus programas ni compilar nada.
+
+5
+00:00:24,715 --> 00:00:29,243
+Y cada integración se hacía a medida: cada aplicación con cada sistema, una por una.
+
+6
+00:00:30,843 --> 00:00:36,450
+El Model Context Protocol, o MCP, es un estándar abierto creado por Anthropic para resolver esto.
+
+7
+00:00:36,900 --> 00:00:42,961
+Pensalo como un puerto USB-C para la IA: un solo conector que sirve para todo.
+
+8
+00:00:43,411 --> 00:00:48,194
+Cualquier asistente compatible puede usar cualquier servidor MCP, hablando el mismo idioma.
+
+9
+00:00:49,794 --> 00:00:54,067
+Hay tres piezas. El host es la aplicación que usás; por ejemplo, Claude Desktop.
+
+10
+00:00:54,517 --> 00:00:58,127
+Adentro vive un cliente MCP, que mantiene la conexión con cada servidor.
+
+11
+00:00:58,577 --> 00:01:02,710
+Y del otro lado está el servidor MCP: un programa que expone capacidades.
+
+12
+00:01:03,160 --> 00:01:08,768
+Se comunican con mensajes JSON-RPC. En este caso, por la entrada y salida estándar del proceso: stdio.
+
+13
+00:01:10,368 --> 00:01:13,027
+Un servidor puede ofrecer tres tipos de cosas.
+
+14
+00:01:13,477 --> 00:01:17,273
+Herramientas, que son funciones que la IA puede ejecutar.
+
+15
+00:01:17,723 --> 00:01:22,146
+Recursos, que son datos para leer. Y prompts, que son plantillas reutilizables.
+
+16
+00:01:22,596 --> 00:01:24,756
+Este proyecto se centra en las herramientas.
+
+17
+00:01:26,356 --> 00:01:29,990
+Primero, cliente y servidor se saludan e intercambian sus capacidades.
+
+18
+00:01:30,440 --> 00:01:36,941
+Después, el cliente pregunta qué herramientas hay, y el servidor responde con el nombre, la descripción y los parámetros de cada una.
+
+19
+00:01:37,391 --> 00:01:41,316
+Cuando el modelo decide usar una, el cliente envía la llamada con sus argumentos.
+
+20
+00:01:41,766 --> 00:01:46,909
+El servidor la ejecuta y devuelve el resultado, que vuelve al modelo como contexto para seguir razonando.
+
+21
+00:01:48,509 --> 00:01:51,237
+Ahora sí: el MCP para AS/400.
+
+22
+00:01:51,687 --> 00:01:57,004
+Es un servidor escrito en Python con FastMCP, que se conecta al IBM i a través de ODBC.
+
+23
+00:01:57,454 --> 00:02:01,471
+Claude Desktop lo lanza como un proceso y le habla por stdio.
+
+24
+00:02:03,071 --> 00:02:08,284
+Definir una herramienta es muy simple: se agrega el decorador @mcp.tool a una función de Python.
+
+25
+00:02:08,734 --> 00:02:14,237
+FastMCP lee el nombre de la función, los parámetros con sus tipos y el docstring…
+
+26
+00:02:14,687 --> 00:02:18,368
+…y con eso arma automáticamente el esquema que ve la IA.
+
+27
+00:02:19,968 --> 00:02:22,325
+Este servidor ofrece cinco herramientas.
+
+28
+00:02:22,775 --> 00:02:25,700
+Una para ejecutar consultas SQL de solo lectura.
+
+29
+00:02:26,150 --> 00:02:28,937
+Otra para comandos CL de una lista permitida.
+
+30
+00:02:29,387 --> 00:02:31,488
+Una para leer el código fuente de un miembro.
+
+31
+00:02:31,938 --> 00:02:36,315
+Otra para compilar programas RPG, CL, COBOL o C.
+
+32
+00:02:36,765 --> 00:02:40,190
+Y una para leer spoolfiles, como el resultado de una compilación.
+
+33
+00:02:41,790 --> 00:02:47,920
+La conexión se abre con pyodbc y el driver IBM i Access, usando las credenciales del archivo .env.
+
+34
+00:02:48,370 --> 00:02:52,956
+Se reutiliza entre llamadas, y antes de cada uso se verifica con una consulta mínima.
+
+35
+00:02:53,406 --> 00:02:55,763
+Si la conexión se cayó, reconecta sola.
+
+36
+00:02:57,363 --> 00:03:00,672
+Un detalle clave: la conexión ODBC solo entiende SQL.
+
+37
+00:03:01,122 --> 00:03:05,998
+Para ejecutar un comando CL, el servidor lo envuelve en una llamada al procedimiento QSYS2.QCMDEXC.
+
+38
+00:03:06,448 --> 00:03:11,486
+Y como no hay pantalla, los comandos de consulta envían su salida a un archivo en QTEMP…
+
+39
+00:03:11,936 --> 00:03:14,409
+…que después se lee con una consulta SQL normal.
+
+40
+00:03:16,009 --> 00:03:20,827
+Para leer código fuente usa otro truco: crea un alias SQL temporal que apunta al miembro.
+
+41
+00:03:21,277 --> 00:03:25,538
+Lee las líneas ordenadas por número de secuencia y, al terminar, borra el alias.
+
+42
+00:03:27,138 --> 00:03:29,379
+Pero lo más importante es la seguridad.
+
+43
+00:03:29,829 --> 00:03:34,334
+La filosofía es simple: análisis y compilación, sí. Destrucción, nunca.
+
+44
+00:03:34,784 --> 00:03:38,290
+Cada pedido pasa por varias capas de validación antes de tocar el sistema.
+
+45
+00:03:39,890 --> 00:03:45,590
+En SQL, primero se quitan los comentarios y se rechaza el punto y coma, para evitar sentencias encadenadas.
+
+46
+00:03:46,040 --> 00:03:52,078
+Solo se aceptan consultas que empiezan con SELECT, WITH o VALUES. SELECT INTO y CALL quedan bloqueados.
+
+47
+00:03:52,528 --> 00:03:56,115
+Y si la consulta no tiene un límite, se le agrega uno de mil filas.
+
+48
+00:03:57,715 --> 00:04:00,699
+Para los comandos CL hay una lista blanca estricta.
+
+49
+00:04:01,149 --> 00:04:06,129
+Se permiten comandos de visualización, verificación, compilación y manejo de la sesión.
+
+50
+00:04:06,579 --> 00:04:15,844
+Cualquier otro, como borrar una biblioteca o vaciar un archivo, se rechaza. Incluso RUNSQLSTM, que permitiría saltear las reglas de solo lectura.
+
+51
+00:04:17,444 --> 00:04:27,429
+Los nombres de biblioteca, archivo y miembro se validan con el formato del AS/400: de 1 a 10 caracteres, entre letras, números, #, @ o $.
+
+52
+00:04:27,879 --> 00:04:29,783
+Así se evita la inyección de SQL.
+
+53
+00:04:30,233 --> 00:04:35,457
+Y los mensajes de error se limpian, para no exponer usuarios, contraseñas ni datos de conexión.
+
+54
+00:04:37,057 --> 00:04:42,119
+Veamos un caso real. Le pedís al asistente: «Compilá CALCPRICE y decime si hay errores».
+
+55
+00:04:42,569 --> 00:04:47,376
+El modelo llama a compile_program con la biblioteca, el archivo fuente y el miembro.
+
+56
+00:04:47,826 --> 00:04:52,481
+El servidor valida todo, arma el comando CRTBNDRPG y lo ejecuta en el IBM i.
+
+57
+00:04:52,931 --> 00:04:55,613
+Después lee el spoolfile con el listado de compilación…
+
+58
+00:04:56,063 --> 00:05:00,719
+…y te explica los errores en lenguaje natural: la línea exacta y cómo corregirlos.
+
+59
+00:05:02,319 --> 00:05:08,855
+Para usarlo, instalás las dependencias y completás el archivo .env con el host, el usuario y la contraseña.
+
+60
+00:05:09,305 --> 00:05:12,347
+Después, lo registrás en la configuración de Claude Desktop.
+
+61
+00:05:12,797 --> 00:05:16,361
+Listo: tu asistente ya puede trabajar con tu AS/400.
+
+62
+00:05:17,961 --> 00:05:22,582
+En resumen: MCP es el estándar que conecta a la IA con tus sistemas.
+
+63
+00:05:23,032 --> 00:05:27,246
+Y este servidor lo lleva al mundo IBM i: acceso útil, pero seguro.
+
+64
+00:05:27,696 --> 00:05:28,822
+¡Gracias por mirar!
